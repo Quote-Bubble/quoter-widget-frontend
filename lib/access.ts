@@ -1,0 +1,207 @@
+import type { PropertyType, SolarScan, StoreyBand } from "@/lib/types";
+
+const STOREY_HEIGHT_M = 2.7;
+
+export type AccessAssessment = {
+  estimatedStoreys: StoreyBand;
+  storeyMismatch: boolean;
+  maxRoofHeightM: number | null;
+  steepPitch: boolean;
+  complexity: "simple" | "moderate" | "complex";
+  scaffoldWeeks: number;
+  accessMultiplier: number;
+  extraConfidence: number;
+  notes: string[];
+};
+
+function clampStoreys(value: number): StoreyBand {
+  if (value <= 1) return 1;
+  if (value >= 3) return 3;
+  return 2;
+}
+
+/**
+ * Scaffold cost scales mainly with how many elevations need wrapping, not
+ * with how "detached" a property feels. A standalone house is exposed on
+ * all four sides; terraced houses share party walls with both neighbours
+ * and typically only need scaffolding on two. Semi-detached sits between
+ * (one shared wall); flats often mean complex or communal access.
+ * Cross-checked against published scaffold-cost ranges: a typical semi
+ * runs £900–£1,800, a detached (or anything needing a full wrap) £1,500–
+ * £3,500 — detached trends higher despite easier site access, because the
+ * extra elevations outweigh it (MyBuilder / MyJobQuote 2026 scaffolding
+ * cost guides).
+ */
+function attachmentMultiplier(propertyType: PropertyType | null): {
+  multiplier: number;
+  note: string | null;
+} {
+  switch (propertyType) {
+    case "detached":
+    case "bungalow":
+      return {
+        multiplier: 1.15,
+        note: "Standalone properties need scaffolding on all four elevations — modelled with a 15% uplift.",
+      };
+    case "flat":
+      return {
+        multiplier: 1.2,
+        note: "Flats often mean complex or communal access — modelled with a 20% uplift.",
+      };
+    case "semi_detached":
+      return {
+        multiplier: 1.05,
+        note: "Semi-detached needs scaffolding on three elevations — modelled with a 5% uplift.",
+      };
+    case "terraced":
+      return {
+        multiplier: 0.9,
+        note: "Terraced only needs scaffolding on two elevations (party walls both sides) — modelled with a 10% reduction.",
+      };
+    default:
+      return { multiplier: 1, note: null };
+  }
+}
+
+/**
+ * Steep-pitch labour surcharge, tiered rather than a single flat bump.
+ * Trade guidance: surcharges typically start around a 30° pitch, and
+ * 40°+ roofs commonly see materially higher labour (fall-arrest gear,
+ * slower going) — published ranges run from roughly 20% up past 50% for
+ * the steepest roofs (Bill Ragan Roofing / 1build pitch-cost guides).
+ * These tiers sit inside that range rather than at either edge.
+ */
+function pitchMultiplier(avgPitchDegrees: number): {
+  multiplier: number;
+  confidence: number;
+  note: string | null;
+} {
+  if (avgPitchDegrees >= 50) {
+    return {
+      multiplier: 1.55,
+      confidence: 0.1,
+      note: `Average pitch ≈ ${avgPitchDegrees.toFixed(0)}° — very steep roofs add a 55% access/labour uplift.`,
+    };
+  }
+  if (avgPitchDegrees >= 40) {
+    return {
+      multiplier: 1.35,
+      confidence: 0.07,
+      note: `Average pitch ≈ ${avgPitchDegrees.toFixed(0)}° — steep roofs add a 35% access/labour uplift.`,
+    };
+  }
+  if (avgPitchDegrees >= 30) {
+    return {
+      multiplier: 1.15,
+      confidence: 0.04,
+      note: `Average pitch ≈ ${avgPitchDegrees.toFixed(0)}° — steep roofs add a 15% access/labour uplift.`,
+    };
+  }
+  return { multiplier: 1, confidence: 0, note: null };
+}
+
+/**
+ * Modest price uplift for many-planed (hip-like) roofs, on top of the
+ * existing confidence widening. Published complexity premiums vary widely
+ * (10%–40%+) and are mostly US-market figures conflated with the extra
+ * surface area a hip roof has anyway — which this model already prices
+ * correctly via measured area. This uplift is deliberately conservative:
+ * it accounts for the added labour of extra hips/valleys/cutting, not a
+ * second helping of the area effect.
+ */
+function complexityMultiplier(complexity: AccessAssessment["complexity"]): number {
+  if (complexity === "complex") return 1.08;
+  if (complexity === "moderate") return 1.03;
+  return 1;
+}
+
+/**
+ * Derive scaffolding weeks, access uplift, and confidence wideners from the
+ * Solar scan heights plus the homeowner's storey / property answers.
+ */
+export function assessAccess(
+  scan: SolarScan | null,
+  storeysAnswer: StoreyBand | null,
+  propertyType: PropertyType | null,
+  path: "measured" | "repair" | "roofline" | "consultation" = "measured",
+): AccessAssessment {
+  const notes: string[] = [];
+  let extraConfidence = 0;
+
+  const heights =
+    scan?.roofSegmentStats
+      .map((segment) => segment.planeHeightAtCenterMeters)
+      .filter((height): height is number => typeof height === "number") ?? [];
+  const maxRoofHeightM = heights.length > 0 ? Math.max(...heights) : null;
+
+  const estimatedFromHeight =
+    maxRoofHeightM !== null
+      ? clampStoreys(Math.round(maxRoofHeightM / STOREY_HEIGHT_M))
+      : null;
+
+  const answered = storeysAnswer ?? 2;
+  const storeyMismatch =
+    estimatedFromHeight !== null && estimatedFromHeight !== answered;
+  const estimatedStoreys = clampStoreys(
+    Math.max(answered, estimatedFromHeight ?? answered),
+  );
+
+  if (storeyMismatch) {
+    extraConfidence += 0.06;
+    notes.push(
+      `Satellite roof height (~${maxRoofHeightM!.toFixed(1)} m) suggests ${estimatedFromHeight} storey(s); scaffolding uses the higher of that and your answer.`,
+    );
+  }
+
+  const avgPitch =
+    scan && scan.roofSegmentStats.length > 0
+      ? scan.roofSegmentStats.reduce(
+          (sum, segment) => sum + segment.pitchDegrees,
+          0,
+        ) / scan.roofSegmentStats.length
+      : 0;
+  const pitch = pitchMultiplier(avgPitch);
+  const steepPitch = pitch.multiplier > 1;
+  let accessMultiplier = pitch.multiplier;
+  extraConfidence += pitch.confidence;
+  if (pitch.note) notes.push(pitch.note);
+
+  const segmentCount = scan?.roofSegmentStats.length ?? 0;
+  let complexity: AccessAssessment["complexity"] = "simple";
+  if (segmentCount >= 6) {
+    complexity = "complex";
+    extraConfidence += 0.05;
+    notes.push(
+      `${segmentCount} roof planes detected — complex roofs add an 8% labour uplift and widen the confidence band.`,
+    );
+  } else if (segmentCount >= 3) {
+    complexity = "moderate";
+    extraConfidence += 0.02;
+  }
+  accessMultiplier *= complexityMultiplier(complexity);
+
+  const attachment = attachmentMultiplier(propertyType);
+  accessMultiplier *= attachment.multiplier;
+  if (attachment.note) notes.push(attachment.note);
+
+  let scaffoldWeeks = 0;
+  if (path === "repair") {
+    scaffoldWeeks = estimatedStoreys >= 2 ? 1 : 0;
+  } else if (path === "consultation") {
+    scaffoldWeeks = 0;
+  } else {
+    scaffoldWeeks = estimatedStoreys >= 3 ? 2 : 1;
+  }
+
+  return {
+    estimatedStoreys,
+    storeyMismatch,
+    maxRoofHeightM,
+    steepPitch,
+    complexity,
+    scaffoldWeeks,
+    accessMultiplier,
+    extraConfidence,
+    notes,
+  };
+}

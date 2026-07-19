@@ -1,0 +1,404 @@
+"use client";
+
+import { useState } from "react";
+
+import { AddressAutocomplete } from "@/components/quote/AddressAutocomplete";
+import { MaterialSwatch } from "@/components/quote/MaterialSwatch";
+import {
+  InfoCallout,
+  OptionPill,
+  PrimaryButton,
+  StepHeading,
+  StepShell,
+  flowInputClass,
+  flowLabelClass,
+  useFlowVariant,
+} from "@/components/quote/ui";
+import type { MaterialOption } from "@/lib/materials";
+import type { FlowOption, RepairBand } from "@/lib/quote-flow";
+import type { ContactDetails, JobType, Material } from "@/lib/types";
+
+/* ------------------------------------------------------------------ */
+/* Generic option-list question (heatable-style)                       */
+/* ------------------------------------------------------------------ */
+
+export function OptionListStep<Value extends string | number>({
+  heading,
+  sub,
+  options,
+  selected,
+  onSelect,
+  callout,
+  twoCol = false,
+}: {
+  heading: string;
+  sub?: string;
+  options: readonly FlowOption<Value>[];
+  selected: Value | null;
+  onSelect: (value: Value) => void;
+  callout?: string;
+  twoCol?: boolean;
+}) {
+  const variant = useFlowVariant();
+  return (
+    <StepShell>
+      <StepHeading sub={sub} info={callout}>
+        {heading}
+      </StepHeading>
+      <div
+        className={`grid gap-3 ${
+          twoCol ? "sm:grid-cols-2" : "grid-cols-1"
+        } ${variant === "card" ? "flex-1 content-center" : ""}`}
+      >
+        {options.map((option) => (
+          <OptionPill
+            key={String(option.value)}
+            label={option.label}
+            hint={option.hint}
+            selected={selected === option.value}
+            onClick={() => onSelect(option.value)}
+          />
+        ))}
+      </div>
+    </StepShell>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Address                                                             */
+/* ------------------------------------------------------------------ */
+
+export function AddressStep({
+  line,
+  postcode,
+  onLineChange,
+  onSelect,
+  onPostcodeChange,
+  onContinue,
+}: {
+  line: string;
+  postcode: string;
+  onLineChange: (value: string) => void;
+  onSelect: (formatted: string, postcode: string) => void;
+  onPostcodeChange: (value: string) => void;
+  onContinue: () => void;
+}) {
+  const ready = line.trim().length > 3 && postcode.trim().length >= 5;
+  return (
+    <StepShell>
+      <StepHeading
+        sub="No ladders — we measure from satellite imagery."
+        info="Your address is only used to find your roof on recent aerial imagery."
+      >
+        Where&apos;s the roof?
+      </StepHeading>
+      <label className={flowLabelClass} htmlFor="quote-address">
+        Address
+      </label>
+      <div id="quote-address">
+        <AddressAutocomplete
+          value={line}
+          onChange={onLineChange}
+          onSelect={onSelect}
+          autoFocus
+        />
+      </div>
+      <div className="mt-4">
+        <label className={flowLabelClass} htmlFor="quote-postcode">
+          Postcode
+        </label>
+        <input
+          id="quote-postcode"
+          type="text"
+          value={postcode}
+          onChange={(event) => onPostcodeChange(event.target.value.toUpperCase())}
+          placeholder="e.g. SW1A 2AA"
+          autoComplete="postal-code"
+          className={flowInputClass}
+        />
+      </div>
+      <PrimaryButton onClick={onContinue} disabled={!ready}>
+        Continue
+      </PrimaryButton>
+    </StepShell>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Repair size                                                         */
+/* ------------------------------------------------------------------ */
+
+export function RepairSizeStep({
+  bands,
+  selected,
+  onSelect,
+}: {
+  bands: RepairBand[];
+  selected: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <OptionListStep
+      heading="How big is the damaged area?"
+      options={bands.map((band) => ({
+        value: band.id,
+        label: band.label,
+        hint: band.hint,
+      }))}
+      selected={selected}
+      onSelect={onSelect}
+      callout="A rough size is fine — your roofer confirms the exact area before any work."
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Material (image tiles, greensky-style)                              */
+/* ------------------------------------------------------------------ */
+
+export function MaterialStep({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: MaterialOption[];
+  selected: Material | null;
+  onSelect: (value: Material) => void;
+}) {
+  const variant = useFlowVariant();
+  return (
+    <StepShell>
+      <StepHeading
+        sub="Not sure? Just pick that option."
+        info="The covering changes material cost more than anything else in your estimate."
+      >
+        What&apos;s on the roof?
+      </StepHeading>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {options.map((option) => {
+          const isSelected = selected === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onSelect(option.value)}
+              aria-pressed={isSelected}
+              className={`group overflow-hidden rounded-2xl border bg-white p-2 text-center transition-colors duration-150 ${
+                isSelected
+                  ? "border-brand-500 shadow-[0_0_0_3px_rgba(47,107,255,0.2),0_10px_24px_-10px_rgba(31,87,240,0.5)]"
+                  : "border-line hover:border-brand-300"
+              }`}
+            >
+              <span className={`relative block overflow-hidden rounded-xl ${variant === "card" ? "h-16" : "h-20"}`}>
+                <MaterialSwatch id={option.swatch} />
+                {isSelected ? (
+                  <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-brand-500 text-white shadow">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="size-3.5"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 12.5 9.5 18 20 6.5" />
+                    </svg>
+                  </span>
+                ) : null}
+              </span>
+              <span className="mt-1.5 block text-[12px] font-semibold leading-tight text-ink">
+                {option.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </StepShell>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Contact (lead gate)                                                 */
+/* ------------------------------------------------------------------ */
+
+export function ContactStep({
+  jobType,
+  initial,
+  initialOtherDescription,
+  fallbackReason,
+  busy,
+  error,
+  onSubmit,
+  onSkipToEstimate,
+}: {
+  jobType: JobType | null;
+  initial: ContactDetails;
+  initialOtherDescription: string;
+  fallbackReason: string | null;
+  busy: boolean;
+  error: string | null;
+  onSubmit: (contact: ContactDetails, otherJobDescription: string) => void;
+  onSkipToEstimate?: () => void;
+}) {
+  const variant = useFlowVariant();
+  const [name, setName] = useState(initial.name);
+  const [phone, setPhone] = useState(initial.phone);
+  const [email, setEmail] = useState(initial.email);
+  const [otherDescription, setOtherDescription] = useState(
+    initialOtherDescription,
+  );
+
+  const phoneValid = /^[0-9+()\s-]{7,}$/.test(phone.trim());
+  const ready = name.trim().length >= 2 && phoneValid;
+  const isQuotePath =
+    jobType === "full_replacement" ||
+    jobType === "flat_roof_replacement" ||
+    jobType === "tile_or_slate_repair" ||
+    jobType === "gutters_fascias_soffits";
+  const showEstimateNext = isQuotePath && !fallbackReason;
+
+  return (
+    <StepShell>
+      <StepHeading
+        sub={
+          showEstimateNext
+            ? "Just need your details to send this over."
+            : "Your local roofer will call you back."
+        }
+        info="Your details go straight to the roofer this widget belongs to — never sold on."
+      >
+        {showEstimateNext ? "Nearly there" : "Let's get you a call back"}
+      </StepHeading>
+
+      {fallbackReason ? <InfoCallout>{fallbackReason}</InfoCallout> : null}
+
+      <form
+        className={`mt-1 flex flex-col ${variant === "card" ? "gap-2.5" : "gap-4"}`}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!ready || busy) return;
+          onSubmit({ name, phone, email }, otherDescription);
+        }}
+      >
+        <div className={variant === "card" ? "grid grid-cols-2 gap-3" : "contents"}>
+        <div>
+          <label className={flowLabelClass} htmlFor="contact-name">
+            Full name
+          </label>
+          <input
+            id="contact-name"
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoComplete="name"
+            className={flowInputClass}
+          />
+        </div>
+        <div>
+          <label className={flowLabelClass} htmlFor="contact-phone">
+            Phone
+          </label>
+          <input
+            id="contact-phone"
+            type="tel"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            autoComplete="tel"
+            className={flowInputClass}
+          />
+        </div>
+        </div>
+        <div>
+          <label className={flowLabelClass} htmlFor="contact-email">
+            Email <span className="font-normal text-muted">(optional)</span>
+          </label>
+          <input
+            id="contact-email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            className={flowInputClass}
+          />
+        </div>
+        {jobType === "other" ? (
+          <div>
+            <label className={flowLabelClass} htmlFor="contact-description">
+              What do you need done?
+            </label>
+            <textarea
+              id="contact-description"
+              value={otherDescription}
+              onChange={(event) => setOtherDescription(event.target.value)}
+              rows={variant === "card" ? 2 : 3}
+              className={`${flowInputClass} resize-none`}
+            />
+          </div>
+        ) : null}
+
+        {error ? (
+          <p
+            role="alert"
+            className="rounded-2xl bg-red-50 p-3.5 text-[14px] text-red-600"
+          >
+            {error}
+          </p>
+        ) : null}
+
+        <PrimaryButton type="submit" disabled={!ready} busy={busy}>
+          {showEstimateNext ? "Show my estimate" : "Request my call back"}
+        </PrimaryButton>
+        {process.env.NODE_ENV !== "production" && showEstimateNext ? (
+          <button
+            type="button"
+            onClick={onSkipToEstimate}
+            className="self-center text-[12px] font-semibold text-muted transition-colors hover:text-brand-600"
+          >
+            Show estimate without details (dev)
+          </button>
+        ) : null}
+      </form>
+    </StepShell>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Consultation confirmation (manual path terminal)                    */
+/* ------------------------------------------------------------------ */
+
+export function ConsultationStep({
+  name,
+  jobLabel,
+}: {
+  name: string;
+  jobLabel: string;
+}) {
+  return (
+    <StepShell>
+      <div className="mt-6 grid place-items-center">
+        <span className="grid size-16 place-items-center rounded-full bg-brand-50">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="size-8 text-brand-600"
+            aria-hidden="true"
+          >
+            <path d="M4 12.5 9.5 18 20 6.5" />
+          </svg>
+        </span>
+      </div>
+      <StepHeading
+        sub="Your roofer will call to arrange a quick look."
+        info={`This kind of job (${jobLabel.toLowerCase()}) needs a quick look before pricing. Keep your phone handy — most call-backs happen within one working day.`}
+      >
+        Thanks{name ? `, ${name.split(" ")[0]}` : ""} — you&apos;re booked in
+      </StepHeading>
+    </StepShell>
+  );
+}

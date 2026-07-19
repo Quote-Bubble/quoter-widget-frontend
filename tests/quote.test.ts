@@ -1,0 +1,115 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  calculateRepairEstimate,
+  calculateReplacementEstimate,
+  repairSizeAdjustment,
+} from "@/lib/quote";
+
+describe("replacement estimate", () => {
+  const baseInput = {
+    areaM2: 84.2,
+    roofType: "gable" as const,
+    material: "natural_slate" as const,
+    storeys: 2,
+    scaffoldWeeks: 1,
+    includeSkip: true,
+    imageryQuality: "HIGH",
+    imageryDateIsOld: false,
+    polygonWasEdited: false,
+    conditionAnswer: "no" as const,
+  };
+
+  it("uses one pricing area consistently in output and covering line item", () => {
+    const quote = calculateReplacementEstimate(baseInput);
+    const covering = quote.lineItems.find((item) => item.unit === "m²");
+
+    expect(quote.estimateType).toBe("indicative_estimate");
+    expect(quote.pricingMode).toBe("replacement");
+    expect(quote.pricingAreaM2).toBe(84.2);
+    expect(covering?.quantityM2).toBe(84.2);
+    expect(covering?.detail).toContain("84.20m²");
+    expect(covering?.min).toBeCloseTo(84.2 * 160, 8);
+    expect(covering?.max).toBeCloseTo(84.2 * 210, 8);
+    expect(covering?.sourceTitle).toContain("Checkatrade roof replacement");
+  });
+
+  it("raises only the upper estimate for a flagged condition", () => {
+    const normal = calculateReplacementEstimate(baseInput);
+    const flagged = calculateReplacementEstimate({
+      ...baseInput,
+      conditionAnswer: "yes",
+    });
+
+    expect(flagged.min).toBe(normal.min);
+    expect(flagged.max).toBeGreaterThanOrEqual(normal.max * 1.09);
+  });
+
+  it("widens confidence for edited polygons and unknown material", () => {
+    const confident = calculateReplacementEstimate({
+      ...baseInput,
+      material: "concrete_tile",
+    });
+    const uncertain = calculateReplacementEstimate({
+      ...baseInput,
+      material: "not_sure",
+      polygonWasEdited: true,
+      imageryQuality: "MEDIUM",
+      imageryDateIsOld: true,
+    });
+
+    expect(confident.confidenceWidth).toBe(0.12);
+    expect(uncertain.confidenceWidth).toBeCloseTo(0.43, 8);
+  });
+});
+
+describe("repair estimate", () => {
+  const baseRepair = {
+    areaM2: 3,
+    material: "concrete_tile" as const,
+    storeys: 2,
+    scaffoldWeeks: 0,
+    includeSkip: false,
+    conditionAnswer: "no" as const,
+  };
+
+  it("uses sourced repair rates directly up to 3m²", () => {
+    const quote = calculateRepairEstimate(baseRepair);
+    const covering = quote.lineItems[0];
+
+    expect(quote.pricingMode).toBe("repair");
+    expect(covering.min).toBe(270);
+    expect(covering.max).toBe(360);
+    expect(covering.unitRateMin).toBe(90);
+    expect(covering.unitRateMax).toBe(120);
+    expect(covering.sourceTitle).toContain("Checkatrade");
+  });
+
+  it("applies explicit piecewise size decay instead of a fixed band", () => {
+    expect(repairSizeAdjustment(3).rateMultiplier).toBe(1);
+    expect(repairSizeAdjustment(4).rateMultiplier).toBe(0.9);
+    expect(repairSizeAdjustment(12).rateMultiplier).toBe(0.8);
+    expect(repairSizeAdjustment(30).rateMultiplier).toBe(0.7);
+
+    const larger = calculateRepairEstimate({
+      ...baseRepair,
+      areaM2: 12,
+    });
+    expect(larger.lineItems[0].unitRateMin).toBe(72);
+    expect(larger.modelAssumptions.join(" ")).toContain(
+      "explicit internal assumption",
+    );
+  });
+
+  it("prices optional linear items from sourced per-metre rates", () => {
+    const quote = calculateRepairEstimate({
+      ...baseRepair,
+      linearItems: [{ rateId: "dry_ridge_m", quantityM: 5 }],
+    });
+    const ridge = quote.lineItems.find((item) => item.rateId === "dry_ridge_m");
+
+    expect(ridge?.min).toBe(250);
+    expect(ridge?.max).toBe(350);
+    expect(ridge?.unit).toBe("m");
+  });
+});

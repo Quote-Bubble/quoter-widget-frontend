@@ -1,0 +1,655 @@
+"use client";
+
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { APIProvider } from "@vis.gl/react-google-maps";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+
+import { DrawRoofStep } from "@/components/quote/DrawRoofStep";
+import { EstimateStep } from "@/components/quote/EstimateStep";
+import { GutterLineStep } from "@/components/quote/GutterLineStep";
+import { LocateStep } from "@/components/quote/LocateStep";
+import {
+  AddressStep,
+  ConsultationStep,
+  ContactStep,
+  MaterialStep,
+  OptionListStep,
+  RepairSizeStep,
+} from "@/components/quote/steps";
+import {
+  BackButton,
+  FlowVariantProvider,
+  ProgressHeader,
+  useFlowVariant,
+  type FlowVariant,
+} from "@/components/quote/ui";
+import { apiUrl } from "@/lib/api";
+import { materialLabel, materialOptionsFor } from "@/lib/materials";
+import {
+  JOB_TYPE_OPTIONS,
+  PROPERTY_TYPE_OPTIONS,
+  REPAIR_BANDS,
+  ROOFLINE_SCOPE_OPTIONS,
+  STOREY_OPTIONS,
+  buildLeadPayload,
+  computeFlowQuote,
+  createFlowAnswers,
+  drawApproach,
+  flowPath,
+  measureRoofs,
+  measureWholeRoof,
+  nextStep,
+  previousStep,
+  progressPercent,
+  stepSequence,
+  type FlowStepId,
+  type QuoteFlowAnswers,
+} from "@/lib/quote-flow";
+import type { LatLng, SolarScan } from "@/lib/types";
+import { ADVANCE_DELAY_MS, STEP_TRANSITION } from "@/lib/motion";
+
+type SubmitStatus = "idle" | "busy" | "error" | "done";
+
+type FlowState = {
+  answers: QuoteFlowAnswers;
+  step: FlowStepId;
+  direction: 1 | -1;
+  submitStatus: SubmitStatus;
+  submitError: string | null;
+};
+
+type FlowAction =
+  | { type: "PATCH"; patch: Partial<QuoteFlowAnswers> }
+  | { type: "GO_NEXT" }
+  | { type: "GO_BACK" }
+  | { type: "GO_TO"; step: FlowStepId }
+  | {
+      type: "SCAN_SUCCESS";
+      coords: LatLng;
+      formatted: string | null;
+      scan: SolarScan;
+    }
+  | {
+      type: "SCAN_FALLBACK";
+      coords: LatLng | null;
+      formatted: string | null;
+      reason: string;
+    }
+  | { type: "SUBMIT_START"; patch: Partial<QuoteFlowAnswers> }
+  | { type: "SUBMIT_ERROR"; message: string }
+  | { type: "SUBMIT_DONE" };
+
+function reducer(state: FlowState, action: FlowAction): FlowState {
+  switch (action.type) {
+    case "PATCH":
+      return { ...state, answers: { ...state.answers, ...action.patch } };
+    case "GO_NEXT": {
+      const step = nextStep(state.answers, state.step);
+      return step ? { ...state, step, direction: 1 } : state;
+    }
+    case "GO_BACK": {
+      const step = previousStep(state.answers, state.step);
+      return step
+        ? { ...state, step, direction: -1, submitStatus: "idle", submitError: null }
+        : state;
+    }
+    case "GO_TO":
+      return { ...state, step: action.step, direction: -1 };
+    case "SCAN_SUCCESS": {
+      const answers = {
+        ...state.answers,
+        coords: action.coords,
+        address: {
+          ...state.answers.address,
+          formatted: action.formatted ?? state.answers.address.formatted,
+        },
+        scan: action.scan,
+      };
+      return { ...state, answers, step: "draw_roof", direction: 1 };
+    }
+    case "SCAN_FALLBACK": {
+      const answers = {
+        ...state.answers,
+        coords: action.coords,
+        address: {
+          ...state.answers.address,
+          formatted: action.formatted ?? state.answers.address.formatted,
+        },
+        fallbackReason: action.reason,
+      };
+      return { ...state, answers, step: "contact", direction: 1 };
+    }
+    case "SUBMIT_START":
+      return {
+        ...state,
+        answers: { ...state.answers, ...action.patch },
+        submitStatus: "busy",
+        submitError: null,
+      };
+    case "SUBMIT_ERROR":
+      return { ...state, submitStatus: "error", submitError: action.message };
+    case "SUBMIT_DONE": {
+      const step = nextStep(state.answers, "contact") ?? state.step;
+      return { ...state, submitStatus: "done", step, direction: 1 };
+    }
+  }
+}
+
+export type QuoteFlowProps = {
+  rooferId?: string;
+  brandName?: string;
+  initialAddress?: { line: string; postcode: string; formatted?: string | null };
+  onClose?: () => void;
+  variant?: FlowVariant;
+};
+
+/** Flow without a maps provider — for hosts (like the bubble) that already
+ *  mount an APIProvider of their own. */
+export function QuoteFlowInner({
+  rooferId = "demo-roofer",
+  brandName = "Quoter",
+  initialAddress,
+  onClose,
+  mapsEnabled,
+  variant = "page",
+}: QuoteFlowProps & { mapsEnabled: boolean }) {
+  return (
+    <MotionConfig reducedMotion="user">
+      <FlowVariantProvider variant={variant}>
+        <QuoteFlowBody
+          rooferId={rooferId}
+          brandName={brandName}
+          initialAddress={initialAddress}
+          onClose={onClose}
+          mapsEnabled={mapsEnabled}
+        />
+      </FlowVariantProvider>
+    </MotionConfig>
+  );
+}
+
+function QuoteFlowBody({
+  rooferId = "demo-roofer",
+  brandName = "Quoter",
+  initialAddress,
+  onClose,
+  mapsEnabled,
+}: QuoteFlowProps & { mapsEnabled: boolean }) {
+  const variant = useFlowVariant();
+  const [state, dispatch] = useReducer(
+    reducer,
+    undefined,
+    (): FlowState => {
+      const answers = createFlowAnswers(rooferId, {
+        line: initialAddress?.line ?? "",
+        postcode: initialAddress?.postcode ?? "",
+        formatted: initialAddress?.formatted ?? null,
+      });
+      // Any address the host already collected (even just typed text with no
+      // postcode) is enough — geocoding works from the line alone, so we
+      // never ask "where's the roof?" a second time.
+      const hasAddress = answers.address.line.trim().length > 3;
+      return {
+        answers,
+        step: hasAddress ? "job_type" : "address",
+        direction: 1,
+        submitStatus: "idle",
+        submitError: null,
+      };
+    },
+  );
+  const advanceTimerRef = useRef<number | null>(null);
+
+  const { answers, step } = state;
+
+  // Resolve the pin location in the background the moment we know an
+  // address — by the time the user reaches "locate" (after job type /
+  // property type / storeys), the pin is usually already sitting on the
+  // roof, so that step only has to ask for confirmation, not look anything up.
+  const [prefetchedGeocode, setPrefetchedGeocode] = useState<{
+    key: string;
+    coords: LatLng;
+    formatted: string | null;
+  } | null>(null);
+  const addressKey = `${answers.address.line.trim().toLowerCase()}|${answers.address.postcode
+    .trim()
+    .toLowerCase()}`;
+  const [returnToLocate, setReturnToLocate] = useState(false);
+  const [mapView, setMapView] = useState<{
+    center: LatLng;
+    zoom: number;
+  } | null>(null);
+  useEffect(() => {
+    const line = answers.address.line.trim();
+    if (line.length <= 3 || !mapsEnabled) return;
+    let active = true;
+    (async () => {
+      try {
+        const response = await fetch(apiUrl("/api/geocode"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: line,
+            postcode: answers.address.postcode,
+          }),
+        });
+        const body = (await response.json()) as {
+          coords?: LatLng;
+          formattedAddress?: string;
+        };
+        if (active && response.ok && body.coords) {
+          setPrefetchedGeocode({
+            key: addressKey,
+            coords: body.coords,
+            formatted: body.formattedAddress ?? null,
+          });
+        }
+      } catch {
+        // Silent — LocateStep falls back to its own live geocode call.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [addressKey, answers.address.line, answers.address.postcode, mapsEnabled]);
+
+  function clearAdvanceTimer() {
+    if (advanceTimerRef.current !== null) {
+      window.clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  }
+
+  useEffect(() => () => clearAdvanceTimer(), []);
+
+  const approach = drawApproach(answers.jobType, answers.propertyType);
+  const measurement = useMemo(() => {
+    if (!answers.scan) return null;
+    if (approach === "gutter_lines") {
+      return measureWholeRoof(
+        answers.scan,
+        answers.gutterRuns,
+        answers.chimneyCount,
+        answers.rooflightCount,
+      );
+    }
+    return answers.roofs.length > 0
+      ? measureRoofs(answers.scan, answers.roofs)
+      : null;
+  }, [
+    answers.scan,
+    answers.roofs,
+    answers.gutterRuns,
+    answers.chimneyCount,
+    answers.rooflightCount,
+    approach,
+  ]);
+  const quote = useMemo(
+    () => computeFlowQuote(answers, measurement),
+    [answers, measurement],
+  );
+
+  function selectAndAdvance(patch: Partial<QuoteFlowAnswers>) {
+    if (
+      !mapsEnabled &&
+      (patch.jobType === "full_replacement" ||
+        patch.jobType === "flat_roof_replacement" ||
+        patch.jobType === "gutters_fascias_soffits")
+    ) {
+      patch = {
+        ...patch,
+        fallbackReason:
+          "Interactive roof measurement isn't available right now, so your roofer will price this after a quick call.",
+      };
+    }
+    dispatch({ type: "PATCH", patch });
+    clearAdvanceTimer();
+    advanceTimerRef.current = window.setTimeout(() => {
+      advanceTimerRef.current = null;
+      dispatch({ type: "GO_NEXT" });
+    }, ADVANCE_DELAY_MS);
+  }
+
+  function continueFromAddress() {
+    clearAdvanceTimer();
+    if (returnToLocate) {
+      setReturnToLocate(false);
+      dispatch({ type: "GO_TO", step: "locate" });
+      return;
+    }
+    dispatch({ type: "GO_NEXT" });
+  }
+
+  async function submitLead(
+    contact: QuoteFlowAnswers["contact"],
+    otherJobDescription: string,
+  ) {
+    const merged: QuoteFlowAnswers = {
+      ...answers,
+      contact,
+      otherJobDescription,
+    };
+    dispatch({ type: "SUBMIT_START", patch: { contact, otherJobDescription } });
+    try {
+      const payload = buildLeadPayload(
+        merged,
+        measurement,
+        computeFlowQuote(merged, measurement),
+      );
+      const response = await fetch(apiUrl("/api/lead"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(body?.error ?? "We couldn't send your details.");
+      }
+      dispatch({ type: "SUBMIT_DONE" });
+    } catch (submitError) {
+      dispatch({
+        type: "SUBMIT_ERROR",
+        message:
+          submitError instanceof Error
+            ? submitError.message
+            : "We couldn't send your details. Please try again.",
+      });
+    }
+  }
+
+  const sequence = stepSequence(answers);
+  const percent = progressPercent(answers, step);
+  const isTerminal = step === "estimate" || step === "consultation";
+  const showBack =
+    !isTerminal && step !== "locate" && sequence.indexOf(step) > 0;
+  const path = flowPath(answers);
+
+  const jobLabel =
+    JOB_TYPE_OPTIONS.find((option) => option.value === answers.jobType)
+      ?.label ?? "Roof work";
+  const roofPaths = answers.roofs.map((roof) => roof.path);
+
+  function renderStep() {
+    switch (step) {
+      case "address":
+        return (
+          <AddressStep
+            line={answers.address.line}
+            postcode={answers.address.postcode}
+            onLineChange={(line) =>
+              dispatch({
+                type: "PATCH",
+                patch: { address: { ...answers.address, line } },
+              })
+            }
+            onSelect={(formatted, postcode) => {
+              dispatch({
+                type: "PATCH",
+                patch: {
+                  address: {
+                    line: formatted,
+                    postcode: postcode || answers.address.postcode,
+                    formatted,
+                  },
+                },
+              });
+              if (postcode.trim().length >= 5) {
+                clearAdvanceTimer();
+                advanceTimerRef.current = window.setTimeout(() => {
+                  advanceTimerRef.current = null;
+                  continueFromAddress();
+                }, ADVANCE_DELAY_MS);
+              }
+            }}
+            onPostcodeChange={(postcode) =>
+              dispatch({
+                type: "PATCH",
+                patch: { address: { ...answers.address, postcode } },
+              })
+            }
+            onContinue={continueFromAddress}
+          />
+        );
+      case "job_type":
+        return (
+          <OptionListStep
+            heading="What does the roof need?"
+            options={JOB_TYPE_OPTIONS}
+            selected={answers.jobType}
+            onSelect={(jobType) => selectAndAdvance({ jobType })}
+            callout="This decides how we price your job — replacements are measured from satellite, smaller jobs are priced by your roofer."
+            twoCol
+          />
+        );
+      case "property_type":
+        return (
+          <OptionListStep
+            heading="What type of property is it?"
+            options={PROPERTY_TYPE_OPTIONS}
+            selected={answers.propertyType}
+            onSelect={(propertyType) =>
+              // Bungalows skip the storeys question, so answer it here.
+              selectAndAdvance(
+                propertyType === "bungalow"
+                  ? { propertyType, storeys: 1 }
+                  : { propertyType },
+              )
+            }
+            callout="This helps us model scaffold access for your quote."
+            twoCol
+          />
+        );
+      case "storeys":
+        return (
+          <OptionListStep
+            heading="How many storeys is your home?"
+            options={STOREY_OPTIONS}
+            selected={answers.storeys}
+            onSelect={(storeys) => selectAndAdvance({ storeys })}
+            callout="Roof access changes the price — taller homes usually need scaffolding for longer."
+            twoCol
+          />
+        );
+      case "locate":
+        return (
+          <LocateStep
+            addressLine={answers.address.line}
+            postcode={answers.address.postcode}
+            mapView={mapView}
+            onMapViewChange={setMapView}
+            prefetched={
+              prefetchedGeocode?.key === addressKey
+                ? {
+                    coords: prefetchedGeocode.coords,
+                    formatted: prefetchedGeocode.formatted,
+                  }
+                : null
+            }
+            onSuccess={(coords, formatted, scan) =>
+              dispatch({ type: "SCAN_SUCCESS", coords, formatted, scan })
+            }
+            onFallback={(coords, formatted, reason) =>
+              dispatch({ type: "SCAN_FALLBACK", coords, formatted, reason })
+            }
+            onEditAddress={() => {
+              clearAdvanceTimer();
+              setMapView(null);
+              setReturnToLocate(true);
+              dispatch({ type: "GO_TO", step: "address" });
+            }}
+          />
+        );
+      case "draw_roof":
+        if (!answers.scan) return null;
+        if (approach === "gutter_lines") {
+          return (
+            <GutterLineStep
+              scan={answers.scan}
+              areaM2={
+                path !== "roofline" && measurement
+                  ? Math.round(measurement.surfaceAreaM2)
+                  : null
+              }
+              runs={answers.gutterRuns}
+              chimneyCount={answers.chimneyCount}
+              rooflightCount={answers.rooflightCount}
+              showObstructionCounts={path !== "roofline"}
+              continueDisabled={
+                path === "roofline" && answers.gutterRuns.length === 0
+              }
+              onRunsChange={(gutterRuns) =>
+                dispatch({ type: "PATCH", patch: { gutterRuns } })
+              }
+              onChimneyCountChange={(chimneyCount) =>
+                dispatch({ type: "PATCH", patch: { chimneyCount } })
+              }
+              onRooflightCountChange={(rooflightCount) =>
+                dispatch({ type: "PATCH", patch: { rooflightCount } })
+              }
+              onContinue={() => dispatch({ type: "GO_NEXT" })}
+              mapView={mapView}
+              onMapViewChange={setMapView}
+            />
+          );
+        }
+        return (
+          <DrawRoofStep
+            scan={answers.scan}
+            roofs={answers.roofs}
+            measurement={measurement}
+            mode="roof"
+            onRoofsChange={(roofs) => dispatch({ type: "PATCH", patch: { roofs } })}
+            onContinue={() => dispatch({ type: "GO_NEXT" })}
+            mapView={mapView}
+            onMapViewChange={setMapView}
+          />
+        );
+      case "roofline_scope":
+        return (
+          <OptionListStep
+            heading="What do you need replacing?"
+            options={ROOFLINE_SCOPE_OPTIONS}
+            selected={answers.rooflineScope}
+            onSelect={(rooflineScope) => selectAndAdvance({ rooflineScope })}
+            callout="Length comes from the gutter lines you marked."
+          />
+        );
+      case "repair_size":
+        return (
+          <RepairSizeStep
+            bands={REPAIR_BANDS}
+            selected={answers.repairBandId}
+            onSelect={(repairBandId) => selectAndAdvance({ repairBandId })}
+          />
+        );
+      case "material":
+        return (
+          <MaterialStep
+            options={materialOptionsFor(answers.jobType)}
+            selected={answers.material}
+            onSelect={(material) => selectAndAdvance({ material })}
+          />
+        );
+      case "contact":
+        return (
+          <ContactStep
+            jobType={answers.jobType}
+            initial={answers.contact}
+            initialOtherDescription={answers.otherJobDescription}
+            fallbackReason={answers.fallbackReason}
+            busy={state.submitStatus === "busy"}
+            error={state.submitError}
+            onSubmit={(contact, otherJobDescription) =>
+              void submitLead(contact, otherJobDescription)
+            }
+            onSkipToEstimate={() => dispatch({ type: "GO_NEXT" })}
+          />
+        );
+      case "estimate":
+        return quote ? (
+          <EstimateStep
+            quote={quote}
+            measurement={measurement}
+            roofs={roofPaths}
+            address={answers.address.formatted ?? answers.address.line}
+            materialLabelText={
+              path === "roofline"
+                ? answers.rooflineScope === "gutters_fascias"
+                  ? "Gutters + fascias"
+                  : "Gutters"
+                : materialLabel(answers.material)
+            }
+            jobLabel={jobLabel}
+            contactName={answers.contact.name}
+            mapsEnabled={mapsEnabled}
+          />
+        ) : (
+          <ConsultationStep name={answers.contact.name} jobLabel={jobLabel} />
+        );
+      case "consultation":
+        return (
+          <ConsultationStep name={answers.contact.name} jobLabel={jobLabel} />
+        );
+    }
+  }
+
+  return (
+    <div
+      className={`quote-surface relative ${
+        variant === "card"
+          ? "quote-card-shell overflow-hidden bg-transparent"
+          : "flex min-h-dvh flex-col bg-white"
+      }`}
+    >
+      <ProgressHeader
+        percent={percent}
+        brandName={brandName}
+        onClose={onClose}
+      />
+      <div className={`relative min-h-0 ${variant === "page" ? "flex-1" : "flex-1"}`}>
+        <AnimatePresence mode="sync" initial={false}>
+          <motion.div
+            key={step}
+            className={variant === "card" ? "absolute inset-0" : undefined}
+            initial={{ opacity: 0, y: state.direction * 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{
+              opacity: 0,
+              y: state.direction * -6,
+            }}
+            transition={STEP_TRANSITION}
+          >
+            {renderStep()}
+          </motion.div>
+        </AnimatePresence>
+        {showBack ? (
+          <BackButton
+            onClick={() => {
+              clearAdvanceTimer();
+              dispatch({ type: "GO_BACK" });
+            }}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Standalone flow with its own Google Maps provider. */
+export function QuoteFlow(props: QuoteFlowProps) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+  if (!apiKey) return <QuoteFlowInner {...props} mapsEnabled={false} />;
+  return (
+    <APIProvider
+      apiKey={apiKey}
+      libraries={["places"]}
+      region="GB"
+      language="en-GB"
+      solutionChannel="quoter-flow"
+    >
+      <QuoteFlowInner {...props} mapsEnabled />
+    </APIProvider>
+  );
+}
