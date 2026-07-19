@@ -54,13 +54,23 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
         ? Math.ceil(window.innerHeight)
         : measureContentBottom();
 
+      // Is the address-suggestions dropdown currently open? The host uses this
+      // to float the iframe over the page (instead of pushing content down).
+      const ddEl = document.querySelector<HTMLElement>(
+        ".q-suggestions, [role='listbox']",
+      );
+      const dropdown =
+        stage === "input" &&
+        !!ddEl &&
+        ddEl.getBoundingClientRect().height > 0;
+
       // De-dupe identical frames so we don't spam the parent.
-      const key = `${height}|${overlay}|${stage}`;
+      const key = `${height}|${overlay}|${stage}|${dropdown}`;
       if (key === lastKey) return;
       lastKey = key;
 
       window.parent?.postMessage(
-        { source: "quoter-embed", height, overlay, stage },
+        { source: "quoter-embed", height, overlay, stage, dropdown },
         "*",
       );
     };
