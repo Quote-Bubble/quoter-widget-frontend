@@ -32,15 +32,27 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
     const desktopQuery = window.matchMedia("(min-width: 640px)");
     let lastKey = "";
 
+    // The address-suggestions dropdown overflows below the search bar and,
+    // being in an iframe, would be clipped. Report a height that includes it
+    // (and any other overflowing overlay) so the host grows the iframe to fit.
+    const measureContentBottom = () => {
+      let bottom = hostRef.current?.getBoundingClientRect().bottom ?? 0;
+      document
+        .querySelectorAll<HTMLElement>(".q-suggestions, [role='listbox']")
+        .forEach((el) => {
+          const r = el.getBoundingClientRect();
+          if (r.height > 0) bottom = Math.max(bottom, r.bottom);
+        });
+      return Math.ceil(bottom);
+    };
+
     const post = () => {
       const widget = document.getElementById("quoter-widget");
       const stage = widget?.getAttribute("data-stage") ?? "input";
       const overlay = stage === "flow" && !desktopQuery.matches;
-      const height = Math.ceil(
-        overlay
-          ? window.innerHeight
-          : (hostRef.current?.getBoundingClientRect().height ?? 0),
-      );
+      const height = overlay
+        ? Math.ceil(window.innerHeight)
+        : measureContentBottom();
 
       // De-dupe identical frames so we don't spam the parent.
       const key = `${height}|${overlay}|${stage}`;
@@ -78,6 +90,20 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
     };
     window.addEventListener("message", onHostMessage);
 
+    // The suggestions dropdown mounts/animates outside the widget subtree, so
+    // also re-measure on typing, focus changes, and any DOM mutation, then
+    // once more after the dropdown's enter/exit animation settles.
+    const postSoon = () => {
+      post();
+      window.setTimeout(post, 60);
+      window.setTimeout(post, 240);
+    };
+    const bodyMo = new MutationObserver(postSoon);
+    bodyMo.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("input", postSoon, true);
+    document.addEventListener("focusin", postSoon, true);
+    document.addEventListener("focusout", () => window.setTimeout(post, 120), true);
+
     desktopQuery.addEventListener("change", post);
     window.addEventListener("resize", post);
     // A couple of delayed posts catch late layout (fonts, first paint).
@@ -88,6 +114,9 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
     return () => {
       ro.disconnect();
       mo.disconnect();
+      bodyMo.disconnect();
+      document.removeEventListener("input", postSoon, true);
+      document.removeEventListener("focusin", postSoon, true);
       window.removeEventListener("message", onHostMessage);
       desktopQuery.removeEventListener("change", post);
       window.removeEventListener("resize", post);
