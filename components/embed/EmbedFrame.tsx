@@ -64,6 +64,20 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
       mo.observe(widget, { attributes: true, attributeFilter: ["data-stage"] });
     }
 
+    // Host asks us to focus the search input (its own [data-try] buttons
+    // can't reach across the frame boundary).
+    const onHostMessage = (e: MessageEvent) => {
+      const d = e.data;
+      if (!d || d.source !== "quoter-host") return;
+      if (d.action === "focus") {
+        const input = document
+          .getElementById("quoter-widget")
+          ?.querySelector<HTMLInputElement>("input");
+        input?.focus();
+      }
+    };
+    window.addEventListener("message", onHostMessage);
+
     desktopQuery.addEventListener("change", post);
     window.addEventListener("resize", post);
     // A couple of delayed posts catch late layout (fonts, first paint).
@@ -74,6 +88,7 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
     return () => {
       ro.disconnect();
       mo.disconnect();
+      window.removeEventListener("message", onHostMessage);
       desktopQuery.removeEventListener("change", post);
       window.removeEventListener("resize", post);
       window.clearTimeout(t1);
