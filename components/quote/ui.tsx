@@ -389,24 +389,28 @@ export function ProgressHeader({
       }`}
     >
       <div
-        className={`flex items-center justify-between px-5 ${
+        className={`grid grid-cols-[2rem_1fr_2rem] items-center gap-2 px-5 ${
           variant === "card" ? "sm:px-5" : "sm:px-8"
         } ${variant === "card" ? "py-2.5" : "py-3"}`}
       >
+        {/* Invisible spacer matching the close button's width, so the
+            centered wordmark balances against the whole header, not just
+            the space left over next to the X. */}
+        <span aria-hidden="true" />
         <a
           href="https://quoter-web-six.vercel.app"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-baseline gap-1.5"
+          className="flex items-baseline justify-center gap-1.5"
         >
-          <span className="text-[13px] font-semibold text-brand-600">
+          <span className="text-[12px] font-semibold text-brand-600">
             Powered by
           </span>
-          <span className="font-[family-name:var(--font-poppins)] text-2xl font-bold tracking-tight text-ink">
+          <span className="font-[family-name:var(--font-poppins)] text-xl font-bold tracking-tight text-ink">
             Quoter
           </span>
         </a>
-        <span className="flex items-center gap-2.5">
+        <span className="flex items-center justify-end gap-2.5">
           {onClose ? (
             <button
               type="button"
