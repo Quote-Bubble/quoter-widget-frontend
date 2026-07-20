@@ -9,7 +9,7 @@
   --quote-motion-fast: 160ms;
   --quote-motion-base: 240ms;
   --quote-motion-shell: 380ms;
-  --quote-shell-width: 620px;
+  --quote-shell-width: 760px;
   --quote-shell-height: 360px;
 }
 
@@ -113,13 +113,11 @@ select {
     border-radius var(--quote-motion-shell) var(--ease-out-soft);
 }
 
-/* Host grows horizontally on expand; height is animated by the bubble itself. */
+/* Collapsed and expanded states now share one width source
+   (--quote-shell-width) so they can't drift apart again. */
 .quoter-bubble-host {
-  max-width: 620px;
-  transition: max-width var(--quote-motion-shell) var(--ease-out-soft);
-}
-body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
   max-width: var(--quote-shell-width);
+  transition: max-width var(--quote-motion-shell) var(--ease-out-soft);
 }
 
 .q[data-stage="flow"] {
