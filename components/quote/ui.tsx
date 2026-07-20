@@ -53,7 +53,7 @@ export function StepShell({
                overflow:hidden ancestor and clipped the card instead of
                growing it. Bottom padding also still covers the floating
                BackButton's ~60px footprint so it never sits on content. */
-            "h-full pb-24 pt-12"
+            "h-full pb-24 pt-8"
           : "pb-28 pt-10 sm:pt-16"
       } ${className ?? ""}`}
     >
@@ -81,7 +81,7 @@ export function StepHeading({
   return (
     <div
       className={`text-center ${
-        variant === "card" ? "mb-2" : compact ? "mb-5" : "mb-8"
+        variant === "card" ? "mb-6" : compact ? "mb-5" : "mb-8"
       }`}
     >
       <h1

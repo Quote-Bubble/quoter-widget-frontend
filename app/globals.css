@@ -14,7 +14,7 @@
      of a height/min-height trick - that fought an overflow:hidden
      ancestor and clipped content instead of growing it. */
   --quote-collapsed-width: 620px;
-  --quote-shell-width: 760px;
+  --quote-shell-width: 700px;
 }
 
 @theme inline {
