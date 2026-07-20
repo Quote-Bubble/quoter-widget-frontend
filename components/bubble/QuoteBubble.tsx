@@ -157,8 +157,8 @@ function QuoteBubbleShell({
               <div className="q-search relative">
                 <svg
                   className="q-search-icon"
-                  width="21"
-                  height="21"
+                  width="19"
+                  height="19"
                   viewBox="0 0 24 24"
                   fill="none"
                   aria-hidden="true"
@@ -202,8 +202,8 @@ function QuoteBubbleShell({
                 >
                   Get quote
                   <svg
-                    width="18"
-                    height="18"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     aria-hidden="true"
