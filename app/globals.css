@@ -9,8 +9,11 @@
   --quote-motion-fast: 160ms;
   --quote-motion-base: 240ms;
   --quote-motion-shell: 380ms;
+  /* Collapsed search bar stays its original size; only the opened flow
+     grows (both wider and taller). */
+  --quote-collapsed-width: 620px;
   --quote-shell-width: 760px;
-  --quote-shell-height: 360px;
+  --quote-shell-height: 460px;
 }
 
 @theme inline {
@@ -113,11 +116,15 @@ select {
     border-radius var(--quote-motion-shell) var(--ease-out-soft);
 }
 
-/* Collapsed and expanded states now share one width source
-   (--quote-shell-width) so they can't drift apart again. */
+/* Collapsed search bar's own size; the opened flow overrides this below
+   (kept as two explicit rules, not one shared value, on purpose - they
+   are allowed to differ). */
 .quoter-bubble-host {
-  max-width: var(--quote-shell-width);
+  max-width: var(--quote-collapsed-width);
   transition: max-width var(--quote-motion-shell) var(--ease-out-soft);
+}
+body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
+  max-width: var(--quote-shell-width);
 }
 
 .q[data-stage="flow"] {
@@ -133,6 +140,9 @@ select {
 
 .quote-card-shell {
   height: 100%;
+  /* This class only ever renders once the flow is open, so this is a
+     safe unconditional floor - the search bar it never applies to. */
+  min-height: var(--quote-shell-height);
   display: flex;
   flex-direction: column;
 }
