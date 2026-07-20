@@ -215,7 +215,7 @@ export function AddressAutocomplete({
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => selectPrediction(prediction)}
           onMouseEnter={() => setActiveIndex(index)}
-          className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors ${
+          className={`flex w-full items-start gap-3 px-3.5 py-3 text-left transition-colors ${
             activeIndex === index ? "bg-brand-50" : "hover:bg-brand-50"
           }`}
         >
@@ -224,18 +224,18 @@ export function AddressAutocomplete({
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            className="mt-0.5 size-4 flex-none text-brand-500"
+            className="mt-0.5 size-4.5 flex-none text-brand-500"
             aria-hidden="true"
           >
             <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
             <circle cx="12" cy="10" r="2.5" />
           </svg>
           <span className="min-w-0">
-            <span className="block truncate text-[14px] font-semibold text-ink">
+            <span className="block truncate text-[16px] font-semibold text-ink">
               {prediction.mainText?.toString() ?? prediction.text.toString()}
             </span>
             {prediction.secondaryText ? (
-              <span className="mt-0.5 block truncate text-[12px] text-muted">
+              <span className="mt-0.5 block truncate text-[13.5px] text-muted">
                 {prediction.secondaryText.toString()}
               </span>
             ) : null}

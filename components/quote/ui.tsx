@@ -82,7 +82,7 @@ export function StepHeading({
       <h1
         className={`text-balance font-[family-name:var(--font-poppins)] font-semibold leading-tight tracking-tight text-ink ${
           variant === "card"
-            ? "text-[1.15rem]"
+            ? "text-[1.4rem]"
             : "text-3xl sm:text-4xl"
         }`}
       >
@@ -92,7 +92,7 @@ export function StepHeading({
       {sub ? (
         <p
           className={`mt-2 truncate text-muted ${
-            variant === "card" ? "text-[12px]" : "text-[15px]"
+            variant === "card" ? "text-[14px]" : "text-[16px]"
           }`}
         >
           {sub}
@@ -183,7 +183,7 @@ export function OptionPill({
       onClick={onClick}
       aria-pressed={selected}
       className={`group flex w-full items-center text-left transition-colors duration-150 ${
-        compact ? "gap-3 rounded-2xl px-2.5 py-2" : "gap-4 rounded-full px-3 py-3"
+        compact ? "gap-3.5 rounded-2xl px-3.5 py-3.5" : "gap-4 rounded-full px-4 py-4"
       } ${
         selected
           ? "bg-brand-500 text-white shadow-[0_10px_24px_-8px_rgba(31,87,240,0.55)]"
@@ -192,7 +192,7 @@ export function OptionPill({
     >
       <span
         className={`grid flex-none place-items-center rounded-full transition-colors ${
-          compact ? "size-7" : "size-9"
+          compact ? "size-8" : "size-10"
         } ${selected ? "bg-white/95" : "bg-white/70 group-hover:bg-white"}`}
       >
         <svg
@@ -203,7 +203,7 @@ export function OptionPill({
           strokeLinecap="round"
           strokeLinejoin="round"
           className={`text-brand-600 transition-opacity ${
-            compact ? "size-3.5" : "size-4"
+            compact ? "size-4" : "size-4.5"
           } ${selected ? "opacity-100" : "opacity-0"}`}
           aria-hidden="true"
         >
@@ -213,7 +213,7 @@ export function OptionPill({
       <span className={`min-w-0 ${compact ? "py-0.5" : "py-1"}`}>
         <span
           className={`block font-semibold leading-snug ${
-            compact ? "text-[13.5px]" : "text-[15px]"
+            compact ? "text-[16px]" : "text-[17px]"
           }`}
         >
           {label}
@@ -221,7 +221,7 @@ export function OptionPill({
         {hint ? (
           <span
             className={`mt-0.5 block leading-snug ${
-              compact ? "text-[11.5px]" : "text-[13px]"
+              compact ? "text-[13.5px]" : "text-[14.5px]"
             } ${selected ? "text-white/80" : "text-muted"}`}
           >
             {hint}
@@ -236,8 +236,8 @@ export function InfoCallout({ children }: { children: ReactNode }) {
   const variant = useFlowVariant();
   return (
     <div
-      className={`flex items-start gap-3 rounded-2xl bg-brand-50/80 p-4 text-[14px] leading-relaxed text-ink-soft backdrop-blur-sm ${
-        variant === "card" ? "mt-4 p-3 text-[13px]" : "mt-7"
+      className={`flex items-start gap-3 rounded-2xl bg-brand-50/80 p-4 text-[15.5px] leading-relaxed text-ink-soft backdrop-blur-sm ${
+        variant === "card" ? "mt-4 p-3.5 text-[14.5px]" : "mt-7"
       }`}
     >
       <svg
@@ -276,8 +276,8 @@ export function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={disabled || busy}
-      className={`relative inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-b from-brand-500 to-brand-600 px-7 text-[15px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.25)_inset,0_10px_22px_-8px_rgba(31,87,240,0.6)] transition-all duration-200 hover:-translate-y-px hover:brightness-105 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${
-        variant === "card" ? "mt-auto py-3" : "mt-8 py-4"
+      className={`relative inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-b from-brand-500 to-brand-600 px-7 text-[16.5px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.25)_inset,0_10px_22px_-8px_rgba(31,87,240,0.6)] transition-all duration-200 hover:-translate-y-px hover:brightness-105 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${
+        variant === "card" ? "mt-auto py-3.5" : "mt-8 py-4.5"
       }`}
     >
       {busy ? (
@@ -476,7 +476,7 @@ export function useMapHeightClass() {
 }
 
 export const flowInputClass =
-  "w-full rounded-2xl border border-line bg-white px-4 py-3 text-[15px] text-ink outline-none transition-shadow placeholder:text-muted/70 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15";
+  "w-full rounded-2xl border border-line bg-white px-4 py-3.5 text-[16px] text-ink outline-none transition-shadow placeholder:text-muted/70 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15";
 
 export const flowLabelClass =
-  "mb-1.5 block text-[13px] font-semibold text-ink-soft";
+  "mb-1.5 block text-[14.5px] font-semibold text-ink-soft";
