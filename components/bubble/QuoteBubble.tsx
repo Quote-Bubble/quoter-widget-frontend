@@ -9,7 +9,6 @@ import { AddressAutocomplete } from "@/components/quote/AddressAutocomplete";
 import { QuoteFlowInner } from "@/components/quote/QuoteFlow";
 import {
   MOTION_DURATION,
-  QUOTE_SHELL,
   SHELL_TRANSITION,
   STEP_TRANSITION,
 } from "@/lib/motion";
@@ -124,8 +123,16 @@ function QuoteBubbleShell({
         data-suggesting={suggesting && !flow ? "true" : "false"}
         initial={false}
         animate={{
+          /* "auto" here (not a fixed constant) is the actual fix for
+             "the flow has menus of different sizes": Framer Motion
+             measures the real natural height of whatever's currently
+             rendered and animates to it, including on every subsequent
+             step change - not just on first open. The previous fixed
+             360px was a hard ceiling completely independent of the
+             actual step content, clipping anything taller than that
+             (like this component's own overflow:hidden enforced). */
           height: expanded
-            ? QUOTE_SHELL.height
+            ? "auto"
             : collapsedHeight === "auto"
               ? "auto"
               : collapsedHeight,
