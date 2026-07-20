@@ -608,11 +608,22 @@ function QuoteFlowBody({
         brandName={brandName}
         onClose={onClose}
       />
-      <div className={`relative min-h-0 ${variant === "page" ? "flex-1" : "flex-1"}`}>
-        <AnimatePresence mode="sync" initial={false}>
+      {/* min-h-0 only for "page": card's step content now sits in normal
+          flow (see popLayout note below), so it needs the flexbox default
+          "don't shrink below content" behavior to actually size the card
+          to whichever step is showing - min-h-0 would disable exactly
+          that and reintroduce the clipping through a different path. */}
+      <div className={`relative flex-1 ${variant === "page" ? "min-h-0" : ""}`}>
+        {/* popLayout: only the EXITING step is pulled out of flow for its
+            fade-out. The entering step renders in normal document flow
+            immediately, so this container's height always tracks whichever
+            step is actually showing - different steps have genuinely
+            different content heights (e.g. option hints add height), and
+            this is what lets the card (and the iframe embedding it) grow
+            or shrink to fit each one instead of clipping the taller ones. */}
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={step}
-            className={variant === "card" ? "absolute inset-0" : undefined}
             initial={{ opacity: 0, y: state.direction * 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{
