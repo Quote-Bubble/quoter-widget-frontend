@@ -48,7 +48,14 @@ function QuoteBubbleShell({
   const [flowKey, setFlowKey] = useState(0);
   const [suggesting, setSuggesting] = useState(false);
   const [collapsedHeight, setCollapsedHeight] = useState<number | "auto">("auto");
+  // Same technique as collapsedHeight below, applied to the open flow: a
+  // real measured number (not the string "auto") so Framer Motion has an
+  // unambiguous target to animate between on every step change - relying
+  // on "auto" alone didn't reliably re-trigger a smooth transition once
+  // already expanded, it would just snap to the new size.
+  const [flowHeight, setFlowHeight] = useState<number | "auto">("auto");
   const searchRef = useRef<HTMLDivElement>(null);
+  const flowRef = useRef<HTMLDivElement>(null);
   const isDesktop = useIsDesktop();
 
   const expanded = Boolean(flow && isDesktop);
@@ -65,6 +72,16 @@ function QuoteBubbleShell({
     ro.observe(node);
     return () => ro.disconnect();
   }, [expanded, suggesting]);
+
+  useEffect(() => {
+    const node = flowRef.current;
+    if (!node || !expanded) return;
+    const measure = () => setFlowHeight(node.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [expanded, flowReady]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -96,6 +113,7 @@ function QuoteBubbleShell({
   function closeFlow() {
     setFlowReady(false);
     setFlow(null);
+    setFlowHeight("auto");
   }
 
   const flowContent = flow ? (
@@ -123,19 +141,11 @@ function QuoteBubbleShell({
         data-suggesting={suggesting && !flow ? "true" : "false"}
         initial={false}
         animate={{
-          /* "auto" here (not a fixed constant) is the actual fix for
-             "the flow has menus of different sizes": Framer Motion
-             measures the real natural height of whatever's currently
-             rendered and animates to it, including on every subsequent
-             step change - not just on first open. The previous fixed
-             360px was a hard ceiling completely independent of the
-             actual step content, clipping anything taller than that
-             (like this component's own overflow:hidden enforced). */
-          height: expanded
-            ? "auto"
-            : collapsedHeight === "auto"
-              ? "auto"
-              : collapsedHeight,
+          /* A real measured number (not just "auto") is what actually
+             fixed "the flow has menus of different sizes" clipping, and
+             what makes the resize between steps animate smoothly instead
+             of snapping - see flowHeight/collapsedHeight above. */
+          height: expanded ? flowHeight : collapsedHeight,
         }}
         transition={SHELL_TRANSITION}
       >
@@ -149,7 +159,7 @@ function QuoteBubbleShell({
               exit={{ opacity: 0 }}
               transition={STEP_TRANSITION}
             >
-              {flowReady ? flowContent : null}
+              {flowReady ? <div ref={flowRef}>{flowContent}</div> : null}
             </motion.div>
           ) : (
             <motion.div
