@@ -456,6 +456,32 @@ export function BackButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+/**
+ * Attribution: the header shows the operator's own brand (brandName), so
+ * this is what actually says "Quoter" on a white-labelled embed — the
+ * growth loop for a free, widely-embedded widget. Mirrors BackButton's
+ * inset on the opposite corner; purely decorative positioning, adds no
+ * height to the card.
+ */
+export function PoweredByQuoter() {
+  const variant = useFlowVariant();
+  return (
+    <a
+      href="https://quoter-web-six.vercel.app"
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`z-30 inline-flex items-center gap-1 rounded-full text-[11px] font-medium text-ink-soft/70 transition-colors hover:text-brand-600 ${
+        variant === "card"
+          ? "absolute bottom-2 right-3"
+          : "fixed bottom-6 right-5 sm:absolute sm:bottom-8 sm:right-8"
+      }`}
+    >
+      Powered by
+      <span className="font-semibold text-ink-soft/85">Quoter</span>
+    </a>
+  );
+}
+
 export function useMapHeightClass() {
   const variant = useFlowVariant();
   return variant === "card" ? "h-[190px]" : "h-[380px] sm:h-[440px]";
