@@ -450,7 +450,7 @@ export function BackButton({ onClick }: { onClick: () => void }) {
       aria-label="Go back"
       className={`z-30 grid size-11 place-items-center rounded-full bg-[#f1f2f5] text-ink shadow-sm transition-all duration-200 hover:bg-[#e6e8ed] hover:scale-[1.03] active:scale-95 ${
         variant === "card"
-          ? "absolute bottom-2 left-2 size-9"
+          ? "absolute bottom-4 left-4 size-9"
           : "fixed bottom-6 left-5 sm:absolute sm:bottom-8 sm:left-8"
       }`}
     >
