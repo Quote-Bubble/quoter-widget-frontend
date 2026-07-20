@@ -48,10 +48,12 @@ export function StepShell({
     <div
       className={`mx-auto flex w-full max-w-xl flex-col items-stretch px-5 ${
         variant === "card"
-          ? /* Reserve real clearance for the floating BackButton (36px,
-               16px inset -> ~60px footprint from the bottom edge) so it
-               never sits on top of the last row of content. */
-            "h-full pb-16 pt-6"
+          ? /* Taller via real padding (safe, plain content flow) rather
+               than a height/min-height trick - that fought an
+               overflow:hidden ancestor and clipped the card instead of
+               growing it. Bottom padding also still covers the floating
+               BackButton's ~60px footprint so it never sits on content. */
+            "h-full pb-24 pt-12"
           : "pb-28 pt-10 sm:pt-16"
       } ${className ?? ""}`}
     >

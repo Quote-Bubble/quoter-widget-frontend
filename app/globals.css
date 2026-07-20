@@ -10,10 +10,11 @@
   --quote-motion-base: 240ms;
   --quote-motion-shell: 380ms;
   /* Collapsed search bar stays its original size; only the opened flow
-     grows (both wider and taller). */
+     grows wider. Taller is done via real padding in StepShell instead
+     of a height/min-height trick - that fought an overflow:hidden
+     ancestor and clipped content instead of growing it. */
   --quote-collapsed-width: 620px;
   --quote-shell-width: 760px;
-  --quote-shell-height: 460px;
 }
 
 @theme inline {
@@ -140,9 +141,6 @@ body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
 
 .quote-card-shell {
   height: 100%;
-  /* This class only ever renders once the flow is open, so this is a
-     safe unconditional floor - the search bar it never applies to. */
-  min-height: var(--quote-shell-height);
   display: flex;
   flex-direction: column;
 }
