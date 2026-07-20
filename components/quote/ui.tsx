@@ -48,7 +48,10 @@ export function StepShell({
     <div
       className={`mx-auto flex w-full max-w-xl flex-col items-stretch px-5 ${
         variant === "card"
-          ? "h-full pb-3 pt-6"
+          ? /* Reserve real clearance for the floating BackButton (36px,
+               16px inset -> ~60px footprint from the bottom edge) so it
+               never sits on top of the last row of content. */
+            "h-full pb-16 pt-6"
           : "pb-28 pt-10 sm:pt-16"
       } ${className ?? ""}`}
     >
