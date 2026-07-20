@@ -372,10 +372,14 @@ export function ProgressHeader({
   onClose,
 }: {
   percent: number;
-  brandName: string;
+  /** Unused for display — Quoter's own brand is the permanent header
+   * treatment on every embed (the growth mechanic for a widely-embedded,
+   * free widget). Kept in the signature in case a caller still passes it. */
+  brandName?: string;
   onClose?: () => void;
 }) {
   const variant = useFlowVariant();
+  void brandName;
   return (
     <div
       className={`z-20 backdrop-blur-md ${
@@ -389,9 +393,19 @@ export function ProgressHeader({
           variant === "card" ? "sm:px-5" : "sm:px-8"
         } ${variant === "card" ? "py-2.5" : "py-3"}`}
       >
-        <span className="font-[family-name:var(--font-poppins)] text-lg font-semibold tracking-tight text-ink">
-          {brandName}
-        </span>
+        <a
+          href="https://quoter-web-six.vercel.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-baseline gap-1.5"
+        >
+          <span className="text-[13px] font-semibold text-brand-600">
+            Powered by
+          </span>
+          <span className="font-[family-name:var(--font-poppins)] text-2xl font-bold tracking-tight text-ink">
+            Quoter
+          </span>
+        </a>
         <span className="flex items-center gap-2.5">
           {onClose ? (
             <button
@@ -453,32 +467,6 @@ export function BackButton({ onClick }: { onClick: () => void }) {
         <path d="M19 12H5m6-7-7 7 7 7" />
       </svg>
     </button>
-  );
-}
-
-/**
- * Attribution: the header shows the operator's own brand (brandName), so
- * this is what actually says "Quoter" on a white-labelled embed — the
- * growth loop for a free, widely-embedded widget. Mirrors BackButton's
- * inset on the opposite corner; purely decorative positioning, adds no
- * height to the card.
- */
-export function PoweredByQuoter() {
-  const variant = useFlowVariant();
-  return (
-    <a
-      href="https://quoter-web-six.vercel.app"
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`z-30 inline-flex items-center gap-1 rounded-full text-[11px] font-medium text-ink-soft/70 transition-colors hover:text-brand-600 ${
-        variant === "card"
-          ? "absolute bottom-2 right-3"
-          : "fixed bottom-6 right-5 sm:absolute sm:bottom-8 sm:right-8"
-      }`}
-    >
-      Powered by
-      <span className="font-semibold text-ink-soft/85">Quoter</span>
-    </a>
   );
 }
 

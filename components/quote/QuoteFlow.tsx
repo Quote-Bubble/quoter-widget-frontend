@@ -19,7 +19,6 @@ import {
 import {
   BackButton,
   FlowVariantProvider,
-  PoweredByQuoter,
   ProgressHeader,
   useFlowVariant,
   type FlowVariant,
@@ -633,7 +632,6 @@ function QuoteFlowBody({
             }}
           />
         ) : null}
-        <PoweredByQuoter />
       </div>
     </div>
   );
