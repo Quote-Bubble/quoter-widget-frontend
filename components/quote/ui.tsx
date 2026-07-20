@@ -393,9 +393,6 @@ export function ProgressHeader({
           {brandName}
         </span>
         <span className="flex items-center gap-2.5">
-          <span className="rounded-full border border-line bg-white px-3 py-1 text-[12px] font-semibold text-brand-600">
-            {percent}% complete
-          </span>
           {onClose ? (
             <button
               type="button"
