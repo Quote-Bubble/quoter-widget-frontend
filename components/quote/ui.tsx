@@ -438,16 +438,13 @@ export function ProgressHeader({
           ) : null}
         </span>
       </div>
-      <div className="relative h-1.5 w-full bg-brand-100/50">
+      <div className="h-1 w-full bg-brand-100/45">
         <motion.div
-          className="relative h-full rounded-r-full bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 shadow-[0_0_10px_rgba(47,107,255,0.5)]"
+          className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-600"
           initial={false}
           animate={{ width: `${Math.max(percent, 3)}%` }}
           transition={PROGRESS_TRANSITION}
-        >
-          {/* Bright glowing head at the leading edge. */}
-          <span className="pointer-events-none absolute inset-y-0 right-0 w-3 rounded-r-full bg-white/55 blur-[1px]" />
-        </motion.div>
+        />
       </div>
     </div>
   );
