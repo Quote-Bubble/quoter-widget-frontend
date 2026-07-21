@@ -89,7 +89,11 @@ export function StepHeading({
       }`}
     >
       <h1
-        className={`text-balance font-[family-name:var(--font-poppins)] font-semibold leading-tight tracking-tight text-ink ${
+        // -1 so the flow can programmatically move focus here on each step
+        // change (screen-reader / keyboard users) without adding it to the tab
+        // order; outline is suppressed since this focus is programmatic.
+        tabIndex={-1}
+        className={`text-balance font-[family-name:var(--font-poppins)] font-semibold leading-tight tracking-tight text-ink outline-none ${
           variant === "card"
             ? "text-[1.65rem]"
             : "text-3xl sm:text-4xl"

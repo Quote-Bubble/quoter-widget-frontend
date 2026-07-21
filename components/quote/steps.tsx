@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { AddressAutocomplete } from "@/components/quote/AddressAutocomplete";
 import { MaterialSwatch } from "@/components/quote/MaterialSwatch";
@@ -239,7 +239,11 @@ export function ContactStep({
   fallbackReason: string | null;
   busy: boolean;
   error: string | null;
-  onSubmit: (contact: ContactDetails, otherJobDescription: string) => void;
+  onSubmit: (
+    contact: ContactDetails,
+    otherJobDescription: string,
+    botCheck: { hp: string; elapsedMs: number },
+  ) => void;
   onSkipToEstimate?: () => void;
 }) {
   const variant = useFlowVariant();
@@ -249,6 +253,11 @@ export function ContactStep({
   const [otherDescription, setOtherDescription] = useState(
     initialOtherDescription,
   );
+  // Anti-spam: a hidden field bots tend to fill, plus how long the form was on
+  // screen before submit. Both are sent to the backend, which silently drops
+  // obvious bots (see /api/lead).
+  const [honeypot, setHoneypot] = useState("");
+  const mountedAtRef = useRef(Date.now());
 
   const phoneValid = /^[0-9+()\s-]{7,}$/.test(phone.trim());
   const ready = name.trim().length >= 2 && phoneValid;
@@ -279,9 +288,24 @@ export function ContactStep({
         onSubmit={(event) => {
           event.preventDefault();
           if (!ready || busy) return;
-          onSubmit({ name, phone, email }, otherDescription);
+          onSubmit({ name, phone, email }, otherDescription, {
+            hp: honeypot,
+            elapsedMs: Date.now() - mountedAtRef.current,
+          });
         }}
       >
+        {/* Honeypot — hidden from humans, off the tab order and a11y tree.
+            Bots that auto-fill every field will populate it and get dropped. */}
+        <input
+          type="text"
+          name="company"
+          value={honeypot}
+          onChange={(event) => setHoneypot(event.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="pointer-events-none absolute left-[-9999px] h-0 w-0 opacity-0"
+        />
         <div className={variant === "card" ? "grid grid-cols-2 gap-3" : "contents"}>
         <div>
           <label className={flowLabelClass} htmlFor="contact-name">

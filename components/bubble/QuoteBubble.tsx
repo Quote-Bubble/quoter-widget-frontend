@@ -13,6 +13,8 @@ import {
   SHELL_TRANSITION,
   STEP_TRANSITION,
 } from "@/lib/motion";
+import { initAnalytics, track } from "@/lib/analytics";
+import { flushPendingLead } from "@/lib/pending-lead";
 
 type QuoteBubbleProps = {
   rooferId?: string;
@@ -53,6 +55,12 @@ function QuoteBubbleShell({
   const isDesktop = useIsDesktop();
 
   const expanded = Boolean(flow && isDesktop);
+
+  useEffect(() => {
+    initAnalytics(rooferId);
+    // Re-send any lead stashed but never confirmed on a prior visit.
+    flushPendingLead();
+  }, [rooferId]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -98,11 +106,13 @@ function QuoteBubbleShell({
     setFlowKey(key);
     setSuggesting(false);
     setFlow({ key, line: nextLine, postcode, formatted });
+    track("widget_opened");
   }
 
   function closeFlow() {
     setFlowReady(false);
     setFlow(null);
+    track("widget_closed");
   }
 
   const flowContent = flow ? (

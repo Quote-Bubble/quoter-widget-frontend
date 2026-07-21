@@ -47,6 +47,12 @@ import {
 } from "@/lib/quote-flow";
 import type { LatLng, SolarScan } from "@/lib/types";
 import { ADVANCE_DELAY_MS, STEP_TRANSITION } from "@/lib/motion";
+import { track } from "@/lib/analytics";
+import {
+  clearPendingLead,
+  postLeadWithRetry,
+  savePendingLead,
+} from "@/lib/pending-lead";
 
 type SubmitStatus = "idle" | "busy" | "error" | "done";
 
@@ -199,6 +205,7 @@ function QuoteFlowBody({
     },
   );
   const advanceTimerRef = useRef<number | null>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   const { answers, step } = state;
 
@@ -289,6 +296,32 @@ function QuoteFlowBody({
     [answers, measurement],
   );
 
+  // Funnel analytics: one event per step reached, so drop-off is visible.
+  useEffect(() => {
+    track("step_viewed", { step });
+    if (step === "estimate") {
+      track("quote_shown", {
+        min: quote?.min ?? null,
+        max: quote?.max ?? null,
+      });
+    }
+    // Only fire on step change; quote is stable by the time it's shown.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  // Accessibility: move focus into each new step so keyboard / screen-reader
+  // users follow along instead of being stranded on the previous step. The
+  // address step focuses its own input, so leave it be there.
+  useEffect(() => {
+    if (step === "address") return;
+    const root = bodyRef.current;
+    if (!root) return;
+    const target =
+      root.querySelector<HTMLElement>("h1") ??
+      root.querySelector<HTMLElement>("[data-step-focus]");
+    target?.focus({ preventScroll: true });
+  }, [step]);
+
   function selectAndAdvance(patch: Partial<QuoteFlowAnswers>) {
     if (
       !mapsEnabled &&
@@ -323,6 +356,7 @@ function QuoteFlowBody({
   async function submitLead(
     contact: QuoteFlowAnswers["contact"],
     otherJobDescription: string,
+    botCheck: { hp: string; elapsedMs: number },
   ) {
     const merged: QuoteFlowAnswers = {
       ...answers,
@@ -330,32 +364,31 @@ function QuoteFlowBody({
       otherJobDescription,
     };
     dispatch({ type: "SUBMIT_START", patch: { contact, otherJobDescription } });
-    try {
-      const payload = buildLeadPayload(
-        merged,
-        measurement,
-        computeFlowQuote(merged, measurement),
-      );
-      const response = await fetch(apiUrl("/api/lead"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+    const payload = buildLeadPayload(
+      merged,
+      measurement,
+      computeFlowQuote(merged, measurement),
+    );
+    // Anti-spam signals travel alongside the payload; the backend silently
+    // drops obvious bots (honeypot filled, or submitted implausibly fast).
+    const body = { ...payload, _hp: botCheck.hp, _elapsedMs: botCheck.elapsedMs };
+
+    // Stash before sending so a reload/crash mid-send doesn't lose the lead;
+    // cleared only once the backend confirms.
+    savePendingLead(body);
+    const result = await postLeadWithRetry(body);
+
+    if (result.ok) {
+      clearPendingLead();
+      track("lead_submitted", {
+        jobType: payload.jobType,
+        leadType: payload.leadType,
       });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        throw new Error(body?.error ?? "We couldn't send your details.");
-      }
       dispatch({ type: "SUBMIT_DONE" });
-    } catch (submitError) {
-      dispatch({
-        type: "SUBMIT_ERROR",
-        message:
-          submitError instanceof Error
-            ? submitError.message
-            : "We couldn't send your details. Please try again.",
-      });
+    } else {
+      // Leave the pending lead in storage so it can be re-sent on next mount.
+      track("lead_failed", { retriable: result.retriable });
+      dispatch({ type: "SUBMIT_ERROR", message: result.message });
     }
   }
 
@@ -561,8 +594,8 @@ function QuoteFlowBody({
             fallbackReason={answers.fallbackReason}
             busy={state.submitStatus === "busy"}
             error={state.submitError}
-            onSubmit={(contact, otherJobDescription) =>
-              void submitLead(contact, otherJobDescription)
+            onSubmit={(contact, otherJobDescription, botCheck) =>
+              void submitLead(contact, otherJobDescription, botCheck)
             }
             onSkipToEstimate={() => dispatch({ type: "GO_NEXT" })}
           />
@@ -615,6 +648,7 @@ function QuoteFlowBody({
           is a safety net for anything taller than the fixed panel. Page
           variant scrolls the whole document instead. */}
       <div
+        ref={bodyRef}
         className={`relative flex-1 ${
           variant === "card"
             ? "flex min-h-0 flex-col overflow-y-auto overflow-x-hidden"
