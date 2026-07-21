@@ -192,7 +192,7 @@ export function OptionPill({
       onClick={onClick}
       aria-pressed={selected}
       className={`group flex w-full items-center text-left transition-colors duration-150 ${
-        compact ? "gap-3 rounded-2xl px-4 py-3" : "gap-4 rounded-full px-4 py-4"
+        compact ? "gap-3.5 rounded-2xl px-4 py-3.5" : "gap-4 rounded-full px-4 py-4"
       } ${
         selected
           ? "bg-brand-500 text-white shadow-[0_10px_24px_-8px_rgba(31,87,240,0.55)]"
@@ -201,7 +201,7 @@ export function OptionPill({
     >
       <span
         className={`grid flex-none place-items-center rounded-full transition-colors ${
-          compact ? "size-7" : "size-10"
+          compact ? "size-8" : "size-10"
         } ${selected ? "bg-white/95" : "bg-white/70 group-hover:bg-white"}`}
       >
         <svg
@@ -222,7 +222,7 @@ export function OptionPill({
       <span className={`min-w-0 ${compact ? "py-0.5" : "py-1"}`}>
         <span
           className={`block font-semibold leading-snug ${
-            compact ? "text-[15.5px]" : "text-[17px]"
+            compact ? "text-[16px]" : "text-[17px]"
           }`}
         >
           {label}
@@ -438,13 +438,16 @@ export function ProgressHeader({
           ) : null}
         </span>
       </div>
-      <div className="h-1 w-full bg-brand-100/60">
+      <div className="relative h-1.5 w-full bg-brand-100/50">
         <motion.div
-          className="h-full rounded-r-full bg-brand-500"
+          className="relative h-full rounded-r-full bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 shadow-[0_0_10px_rgba(47,107,255,0.5)]"
           initial={false}
-          animate={{ width: `${Math.max(percent, 2)}%` }}
+          animate={{ width: `${Math.max(percent, 3)}%` }}
           transition={PROGRESS_TRANSITION}
-        />
+        >
+          {/* Bright glowing head at the leading edge. */}
+          <span className="pointer-events-none absolute inset-y-0 right-0 w-3 rounded-r-full bg-white/55 blur-[1px]" />
+        </motion.div>
       </div>
     </div>
   );
