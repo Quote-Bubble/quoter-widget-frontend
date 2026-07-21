@@ -215,14 +215,27 @@ body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
 .q-go:active {
   transform: translateY(0) scale(0.98);
 }
-.q-go:disabled {
-  cursor: not-allowed;
-  filter: saturate(0.65);
-  opacity: 0.55;
-}
 .q-go:focus-visible {
   outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
+}
+
+.q-hint {
+  margin: 8px 2px 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #dc4545;
+  animation: q-hint-in 0.18s var(--ease-out-soft) both;
+}
+@keyframes q-hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .q-presets {

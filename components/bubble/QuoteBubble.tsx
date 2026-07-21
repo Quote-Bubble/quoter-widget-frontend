@@ -47,6 +47,8 @@ function QuoteBubbleShell({
   const [flowReady, setFlowReady] = useState(false);
   const [flowKey, setFlowKey] = useState(0);
   const [suggesting, setSuggesting] = useState(false);
+  const [showAddressHint, setShowAddressHint] = useState(false);
+  const hintTimerRef = useRef<number | null>(null);
   const [collapsedHeight, setCollapsedHeight] = useState<number | "auto">("auto");
   // Same technique as collapsedHeight below, applied to the open flow: a
   // real measured number (not the string "auto") so Framer Motion has an
@@ -102,6 +104,25 @@ function QuoteBubbleShell({
     );
     return () => window.clearTimeout(timer);
   }, [expanded, flow?.key]);
+
+  useEffect(() => {
+    return () => {
+      if (hintTimerRef.current) window.clearTimeout(hintTimerRef.current);
+    };
+  }, []);
+
+  function submitAddress(text: string) {
+    if (text.trim().length > 3) {
+      openFlow(text, "", null);
+      return;
+    }
+    setShowAddressHint(true);
+    if (hintTimerRef.current) window.clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = window.setTimeout(
+      () => setShowAddressHint(false),
+      2400,
+    );
+  }
 
   function openFlow(nextLine: string, postcode: string, formatted: string | null) {
     const key = flowKey + 1;
@@ -197,14 +218,15 @@ function QuoteBubbleShell({
                 <div className="relative min-w-0 flex-1">
                   <AddressAutocomplete
                     value={line}
-                    onChange={setLine}
+                    onChange={(value) => {
+                      setLine(value);
+                      if (showAddressHint) setShowAddressHint(false);
+                    }}
                     onOpenChange={setSuggesting}
                     onSelect={(formatted, postcode) =>
                       openFlow(formatted, postcode, formatted)
                     }
-                    onSubmitText={(text) => {
-                      if (text.trim().length > 3) openFlow(text, "", null);
-                    }}
+                    onSubmitText={submitAddress}
                     variant="bare"
                     placeholder="Enter your address"
                   />
@@ -212,10 +234,7 @@ function QuoteBubbleShell({
                 <button
                   type="button"
                   className="q-go"
-                  disabled={line.trim().length <= 3}
-                  onClick={() => {
-                    if (line.trim().length > 3) openFlow(line, "", null);
-                  }}
+                  onClick={() => submitAddress(line)}
                 >
                   Get quote
                   <svg
@@ -235,6 +254,11 @@ function QuoteBubbleShell({
                   </svg>
                 </button>
               </div>
+              {showAddressHint && (
+                <p className="q-hint" role="alert">
+                  Enter your address to get a quote
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
