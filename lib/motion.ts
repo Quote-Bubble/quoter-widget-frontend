@@ -12,9 +12,9 @@ export const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 export const EASE_SOFT = [0.22, 1, 0.36, 1] as const;
 
 export const MOTION_DURATION = {
-  fast: 0.16,
-  base: 0.24,
-  shell: 0.38,
+  fast: 0.14,
+  base: 0.2,
+  shell: 0.32,
 } as const;
 
 export const SHELL_TRANSITION: Transition = {
@@ -32,4 +32,4 @@ export const PROGRESS_TRANSITION: Transition = {
   ease: EASE_SOFT,
 };
 
-export const ADVANCE_DELAY_MS = 160;
+export const ADVANCE_DELAY_MS = 110;

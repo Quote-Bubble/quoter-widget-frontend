@@ -16,7 +16,9 @@ import {
 import { apiUrl } from "@/lib/api";
 import type { LatLng, SolarScan } from "@/lib/types";
 
-const MIN_PHASE_MS = 400;
+// Just enough of a hold that the spinner doesn't flash-and-vanish on a fast
+// response — kept short so the flow feels instant when the network is quick.
+const MIN_PHASE_MS = 240;
 
 type Phase = "geocoding" | "confirm" | "scanning" | "error";
 
@@ -211,7 +213,7 @@ export function LocateStep({
 
       <div
         className={`relative overflow-hidden rounded-3xl border border-line shadow-[var(--shadow-soft)] ${
-          variant === "card" ? "-mx-2 min-h-0 flex-1" : mapHeight
+          variant === "card" ? `-mx-2 ${mapHeight}` : mapHeight
         }`}
       >
         {centre ? (

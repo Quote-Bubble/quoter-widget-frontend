@@ -167,7 +167,7 @@ export function GutterLineStep({
 
       <div
         className={`relative overflow-hidden rounded-3xl border border-line shadow-[var(--shadow-soft)] ${
-          variant === "card" ? "-mx-2 min-h-0 flex-1" : mapHeight
+          variant === "card" ? `-mx-2 ${mapHeight}` : mapHeight
         }`}
       >
         <Map

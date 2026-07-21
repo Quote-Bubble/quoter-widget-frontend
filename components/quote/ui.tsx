@@ -477,7 +477,12 @@ export function BackButton({ onClick }: { onClick: () => void }) {
 
 export function useMapHeightClass() {
   const variant = useFlowVariant();
-  return variant === "card" ? "h-[190px]" : "h-[380px] sm:h-[440px]";
+  // Card (iframe embed) maps MUST have a concrete height. The card auto-sizes
+  // to its content, so a `flex-1` map has no free space to fill and collapses
+  // to a zero-height strip (that was the "blank map" bug). A fixed height
+  // breaks that circularity: the map defines its own size, the card grows to
+  // fit it, and the iframe grows to fit the card.
+  return variant === "card" ? "h-[320px]" : "h-[380px] sm:h-[440px]";
 }
 
 export const flowInputClass =
