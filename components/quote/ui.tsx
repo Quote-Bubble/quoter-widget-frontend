@@ -54,7 +54,7 @@ export function StepShell({
   // it on normal steps.
   const cardClass = bleed
     ? "max-w-none flex-1 min-h-0 px-2 py-2"
-    : "max-w-xl flex-1 min-h-0 px-5 pt-5 pb-14";
+    : "max-w-xl flex-1 min-h-0 px-5 pt-9 pb-14";
   return (
     <div
       className={`mx-auto flex w-full flex-col items-stretch ${
@@ -91,7 +91,7 @@ export function StepHeading({
       <h1
         className={`text-balance font-[family-name:var(--font-poppins)] font-semibold leading-tight tracking-tight text-ink ${
           variant === "card"
-            ? "text-[1.5rem]"
+            ? "text-[1.65rem]"
             : "text-3xl sm:text-4xl"
         }`}
       >
@@ -192,7 +192,7 @@ export function OptionPill({
       onClick={onClick}
       aria-pressed={selected}
       className={`group flex w-full items-center text-left transition-colors duration-150 ${
-        compact ? "gap-3.5 rounded-2xl px-4 py-4" : "gap-4 rounded-full px-4 py-4"
+        compact ? "gap-3 rounded-2xl px-4 py-3" : "gap-4 rounded-full px-4 py-4"
       } ${
         selected
           ? "bg-brand-500 text-white shadow-[0_10px_24px_-8px_rgba(31,87,240,0.55)]"
@@ -201,7 +201,7 @@ export function OptionPill({
     >
       <span
         className={`grid flex-none place-items-center rounded-full transition-colors ${
-          compact ? "size-10" : "size-10"
+          compact ? "size-7" : "size-10"
         } ${selected ? "bg-white/95" : "bg-white/70 group-hover:bg-white"}`}
       >
         <svg
@@ -212,7 +212,7 @@ export function OptionPill({
           strokeLinecap="round"
           strokeLinejoin="round"
           className={`text-brand-600 transition-opacity ${
-            compact ? "size-5" : "size-4.5"
+            compact ? "size-4" : "size-4.5"
           } ${selected ? "opacity-100" : "opacity-0"}`}
           aria-hidden="true"
         >
@@ -222,7 +222,7 @@ export function OptionPill({
       <span className={`min-w-0 ${compact ? "py-0.5" : "py-1"}`}>
         <span
           className={`block font-semibold leading-snug ${
-            compact ? "text-[16.5px]" : "text-[17px]"
+            compact ? "text-[15.5px]" : "text-[17px]"
           }`}
         >
           {label}
@@ -230,7 +230,7 @@ export function OptionPill({
         {hint ? (
           <span
             className={`mt-0.5 block leading-snug ${
-              compact ? "text-[14px]" : "text-[14.5px]"
+              compact ? "text-[13.5px]" : "text-[14.5px]"
             } ${selected ? "text-white/80" : "text-muted"}`}
           >
             {hint}
