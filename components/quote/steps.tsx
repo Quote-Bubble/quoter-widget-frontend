@@ -46,7 +46,7 @@ export function OptionListStep<Value extends string | number>({
         {heading}
       </StepHeading>
       <div
-        className={`grid gap-3 ${
+        className={`grid ${variant === "card" ? "gap-3.5" : "gap-3"} ${
           twoCol ? "sm:grid-cols-2" : "grid-cols-1"
         } ${variant === "card" ? "flex-1 content-center" : ""}`}
       >
@@ -174,7 +174,7 @@ export function MaterialStep({
       >
         What&apos;s on the roof?
       </StepHeading>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className={`grid grid-cols-2 sm:grid-cols-4 ${variant === "card" ? "gap-3" : "gap-2"}`}>
         {options.map((option) => {
           const isSelected = selected === option.value;
           return (
@@ -189,7 +189,7 @@ export function MaterialStep({
                   : "border-line hover:border-brand-300"
               }`}
             >
-              <span className={`relative block overflow-hidden rounded-xl ${variant === "card" ? "h-16" : "h-20"}`}>
+              <span className={`relative block overflow-hidden rounded-xl ${variant === "card" ? "h-20" : "h-20"}`}>
                 <MaterialSwatch id={option.swatch} />
                 {isSelected ? (
                   <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-brand-500 text-white shadow">
@@ -208,7 +208,7 @@ export function MaterialStep({
                   </span>
                 ) : null}
               </span>
-              <span className="mt-1.5 block text-[12px] font-semibold leading-tight text-ink">
+              <span className={`mt-2 block font-semibold leading-tight text-ink ${variant === "card" ? "text-[13.5px]" : "text-[12px]"}`}>
                 {option.label}
               </span>
             </button>
@@ -275,7 +275,7 @@ export function ContactStep({
       {fallbackReason ? <InfoCallout>{fallbackReason}</InfoCallout> : null}
 
       <form
-        className={`mt-1 flex flex-col ${variant === "card" ? "gap-2.5" : "gap-4"}`}
+        className={`mt-1 flex flex-col ${variant === "card" ? "gap-3.5" : "gap-4"}`}
         onSubmit={(event) => {
           event.preventDefault();
           if (!ready || busy) return;
