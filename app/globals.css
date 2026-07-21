@@ -128,6 +128,15 @@ body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
   max-width: var(--quote-shell-width);
 }
 
+/* Collapsed bar is a fixed height, so center the search panel vertically
+   within it — otherwise any slack between the panel and the fixed height
+   lands entirely at the bottom and the bar looks slightly high. */
+.q[data-stage="input"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .q[data-stage="flow"] {
   /* Keep glass while the flow is open — do not go solid white. */
   background: rgba(255, 255, 255, 0.52);
