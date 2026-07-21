@@ -9,6 +9,7 @@ import { AddressAutocomplete } from "@/components/quote/AddressAutocomplete";
 import { QuoteFlowInner } from "@/components/quote/QuoteFlow";
 import {
   MOTION_DURATION,
+  QUOTE_SIZES,
   SHELL_TRANSITION,
   STEP_TRANSITION,
 } from "@/lib/motion";
@@ -49,41 +50,9 @@ function QuoteBubbleShell({
   const [suggesting, setSuggesting] = useState(false);
   const [showAddressHint, setShowAddressHint] = useState(false);
   const hintTimerRef = useRef<number | null>(null);
-  const [collapsedHeight, setCollapsedHeight] = useState<number | "auto">("auto");
-  // Same technique as collapsedHeight below, applied to the open flow: a
-  // real measured number (not the string "auto") so Framer Motion has an
-  // unambiguous target to animate between on every step change - relying
-  // on "auto" alone didn't reliably re-trigger a smooth transition once
-  // already expanded, it would just snap to the new size.
-  const [flowHeight, setFlowHeight] = useState<number | "auto">("auto");
-  const searchRef = useRef<HTMLDivElement>(null);
-  const flowRef = useRef<HTMLDivElement>(null);
   const isDesktop = useIsDesktop();
 
   const expanded = Boolean(flow && isDesktop);
-
-  useEffect(() => {
-    const node = searchRef.current;
-    if (!node || expanded) return;
-    // The card's height is border-box: add the collapsed-stage chrome
-    // (18px padding + 1px border, top and bottom) around the search panel.
-    const COLLAPSED_FRAME_PX = 38;
-    const measure = () => setCollapsedHeight(node.offsetHeight + COLLAPSED_FRAME_PX);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(node);
-    return () => ro.disconnect();
-  }, [expanded, suggesting]);
-
-  useEffect(() => {
-    const node = flowRef.current;
-    if (!node || !expanded) return;
-    const measure = () => setFlowHeight(node.offsetHeight);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(node);
-    return () => ro.disconnect();
-  }, [expanded, flowReady]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -134,7 +103,6 @@ function QuoteBubbleShell({
   function closeFlow() {
     setFlowReady(false);
     setFlow(null);
-    setFlowHeight("auto");
   }
 
   const flowContent = flow ? (
@@ -162,11 +130,12 @@ function QuoteBubbleShell({
         data-suggesting={suggesting && !flow ? "true" : "false"}
         initial={false}
         animate={{
-          /* A real measured number (not just "auto") is what actually
-             fixed "the flow has menus of different sizes" clipping, and
-             what makes the resize between steps animate smoothly instead
-             of snapping - see flowHeight/collapsedHeight above. */
-          height: expanded ? flowHeight : collapsedHeight,
+          /* Exactly two fixed heights. The panel never grows to fit its
+             content (taller steps scroll inside it), so this only ever
+             animates between collapsed and expanded - which is what keeps
+             the embedding iframe, and the host page around it, perfectly
+             still except for this one clean transition. */
+          height: expanded ? QUOTE_SIZES.expanded : QUOTE_SIZES.collapsed,
         }}
         transition={SHELL_TRANSITION}
       >
@@ -180,12 +149,11 @@ function QuoteBubbleShell({
               exit={{ opacity: 0 }}
               transition={STEP_TRANSITION}
             >
-              {flowReady ? <div ref={flowRef}>{flowContent}</div> : null}
+              {flowReady ? flowContent : null}
             </motion.div>
           ) : (
             <motion.div
               key="search"
-              ref={searchRef}
               className="q-panel"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}

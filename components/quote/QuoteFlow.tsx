@@ -608,19 +608,18 @@ function QuoteFlowBody({
         brandName={brandName}
         onClose={onClose}
       />
-      {/* min-h-0 only for "page": card's step content now sits in normal
-          flow (see popLayout note below), so it needs the flexbox default
-          "don't shrink below content" behavior to actually size the card
-          to whichever step is showing - min-h-0 would disable exactly
-          that and reintroduce the clipping through a different path. */}
-      <div className={`relative flex-1 ${variant === "page" ? "min-h-0" : ""}`}>
-        {/* popLayout: only the EXITING step is pulled out of flow for its
-            fade-out. The entering step renders in normal document flow
-            immediately, so this container's height always tracks whichever
-            step is actually showing - different steps have genuinely
-            different content heights (e.g. option hints add height), and
-            this is what lets the card (and the iframe embedding it) grow
-            or shrink to fit each one instead of clipping the taller ones. */}
+      {/* The panel is a fixed-height viewport in the card (embed) variant, so
+          the step body scrolls INSIDE it (min-h-0 + overflow) rather than
+          resizing the panel - that fixed size is what keeps the iframe, and
+          the host page around it, still. Page variant scrolls the whole
+          document instead. */}
+      <div
+        className={`relative flex-1 ${
+          variant === "card"
+            ? "min-h-0 overflow-y-auto overflow-x-hidden"
+            : "min-h-0"
+        }`}
+      >
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={step}
@@ -635,15 +634,17 @@ function QuoteFlowBody({
             {renderStep()}
           </motion.div>
         </AnimatePresence>
-        {showBack ? (
-          <BackButton
-            onClick={() => {
-              clearAdvanceTimer();
-              dispatch({ type: "GO_BACK" });
-            }}
-          />
-        ) : null}
       </div>
+      {/* Pinned outside the scroll area so it stays put while the step body
+          scrolls (absolute to the shell, which is position:relative). */}
+      {showBack ? (
+        <BackButton
+          onClick={() => {
+            clearAdvanceTimer();
+            dispatch({ type: "GO_BACK" });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

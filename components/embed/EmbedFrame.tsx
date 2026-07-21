@@ -3,22 +3,34 @@
 import { useEffect, useRef } from "react";
 
 import { QuoteBubble } from "@/components/bubble/QuoteBubble";
+import { QUOTE_SIZES } from "@/lib/motion";
 
 /**
- * The embeddable surface: renders only the QuoteBubble and continuously
- * reports its size to the parent frame over postMessage, so the host page
- * can grow/shrink the <iframe> to fit.
+ * The embeddable surface: renders only the QuoteBubble and reports its
+ * discrete state to the parent frame over postMessage. The widget has just
+ * two on-screen sizes (a fixed collapsed bar and a fixed expanded panel), so
+ * the host never has to track per-pixel content changes - it snaps the iframe
+ * to one of two known heights, and the transient suggestions dropdown floats
+ * as an overlay. Nothing the widget does moves the host page's layout.
  *
  * Protocol — messages are { source: "quoter-embed", ... }:
- *   - height:  the widget's current rendered height (px)
- *   - overlay: true when the flow needs the whole screen (mobile, flow open).
- *              The host then pins the iframe to the full viewport; otherwise
- *              it lays the iframe out inline at `height`.
- *   - stage:   "input" | "flow" (useful for host-side styling)
+ *   - mode:   "collapsed" | "suggesting" | "expanded" | "overlay"
+ *   - height: the iframe height (px) for this mode
+ *   - stage:  "input" | "flow" (mirrored for host-side selectors)
  *
- * This is the same mechanism a roofer's site will use to embed Quoter, so
- * it is the first real piece of the production embed, not landing-only glue.
+ * Modes and how the host treats them:
+ *   collapsed  — fixed bar height, laid out in flow (the reserved slot).
+ *   suggesting — bar height for layout, but the iframe grows to fit the
+ *                dropdown and floats OVER the page (no layout shift).
+ *   expanded   — fixed panel height, floated as an overlay downward from the
+ *                reserved slot (again, nothing around it moves).
+ *   overlay    — mobile: the flow takes the whole viewport.
+ *
+ * This is the same mechanism a roofer's site will use to embed Quoter, so it
+ * is the first real piece of the production embed, not landing-only glue.
  */
+type EmbedMode = "collapsed" | "suggesting" | "expanded" | "overlay";
+
 export function EmbedFrame({ rooferId }: { rooferId: string }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -32,10 +44,10 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
     const desktopQuery = window.matchMedia("(min-width: 640px)");
     let lastKey = "";
 
-    // The address-suggestions dropdown overflows below the search bar and,
-    // being in an iframe, would be clipped. Report a height that includes it
-    // (and any other overflowing overlay) so the host grows the iframe to fit.
-    const measureContentBottom = () => {
+    // Only used by the "suggesting" overlay: the dropdown overflows below the
+    // bar and, being in an iframe, would be clipped — report a height that
+    // includes it so the host grows (and floats) the iframe to fit.
+    const suggestionsBottom = () => {
       let bottom = hostRef.current?.getBoundingClientRect().bottom ?? 0;
       document
         .querySelectorAll<HTMLElement>(".q-suggestions, [role='listbox']")
@@ -46,40 +58,47 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
       return Math.ceil(bottom);
     };
 
+    const suggestionsOpen = () => {
+      const el = document.querySelector<HTMLElement>(
+        ".q-suggestions, [role='listbox']",
+      );
+      return !!el && el.getBoundingClientRect().height > 0;
+    };
+
     const post = () => {
       const widget = document.getElementById("quoter-widget");
       const stage = widget?.getAttribute("data-stage") ?? "input";
-      const overlay = stage === "flow" && !desktopQuery.matches;
-      const height = overlay
-        ? Math.ceil(window.innerHeight)
-        : measureContentBottom();
 
-      // Is the address-suggestions dropdown currently open? The host uses this
-      // to float the iframe over the page (instead of pushing content down).
-      const ddEl = document.querySelector<HTMLElement>(
-        ".q-suggestions, [role='listbox']",
-      );
-      const dropdown =
-        stage === "input" &&
-        !!ddEl &&
-        ddEl.getBoundingClientRect().height > 0;
+      let mode: EmbedMode;
+      let height: number;
+      if (stage === "flow") {
+        if (desktopQuery.matches) {
+          mode = "expanded";
+          height = QUOTE_SIZES.expanded;
+        } else {
+          mode = "overlay";
+          height = Math.ceil(window.innerHeight);
+        }
+      } else if (suggestionsOpen()) {
+        mode = "suggesting";
+        height = suggestionsBottom();
+      } else {
+        mode = "collapsed";
+        height = QUOTE_SIZES.collapsed;
+      }
 
       // De-dupe identical frames so we don't spam the parent.
-      const key = `${height}|${overlay}|${stage}|${dropdown}`;
+      const key = `${mode}|${height}|${stage}`;
       if (key === lastKey) return;
       lastKey = key;
 
       window.parent?.postMessage(
-        { source: "quoter-embed", height, overlay, stage, dropdown },
+        { source: "quoter-embed", mode, height, stage },
         "*",
       );
     };
 
-    // Height changes (stage transitions change height too).
-    const ro = new ResizeObserver(post);
-    if (hostRef.current) ro.observe(hostRef.current);
-
-    // data-stage flips (drives the overlay signal).
+    // data-stage flips (collapsed <-> expanded / overlay).
     const widget = document.getElementById("quoter-widget");
     const mo = new MutationObserver(post);
     if (widget) {
@@ -101,8 +120,8 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
     window.addEventListener("message", onHostMessage);
 
     // The suggestions dropdown mounts/animates outside the widget subtree, so
-    // also re-measure on typing, focus changes, and any DOM mutation, then
-    // once more after the dropdown's enter/exit animation settles.
+    // re-check on typing, focus changes, and any DOM mutation, then once more
+    // after the dropdown's enter/exit animation settles.
     const postSoon = () => {
       post();
       window.setTimeout(post, 60);
@@ -115,21 +134,18 @@ export function EmbedFrame({ rooferId }: { rooferId: string }) {
     document.addEventListener("focusout", () => window.setTimeout(post, 120), true);
 
     desktopQuery.addEventListener("change", post);
-    window.addEventListener("resize", post);
     // A couple of delayed posts catch late layout (fonts, first paint).
     const t1 = window.setTimeout(post, 60);
     const t2 = window.setTimeout(post, 400);
     post();
 
     return () => {
-      ro.disconnect();
       mo.disconnect();
       bodyMo.disconnect();
       document.removeEventListener("input", postSoon, true);
       document.removeEventListener("focusin", postSoon, true);
       window.removeEventListener("message", onHostMessage);
       desktopQuery.removeEventListener("change", post);
-      window.removeEventListener("resize", post);
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
