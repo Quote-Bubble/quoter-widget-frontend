@@ -204,7 +204,7 @@ export function LocateStep({
   }
 
   return (
-    <StepShell>
+    <StepShell bleed>
       {variant === "page" ? (
         <StepHeading sub="Drag the pin onto your roof.">
           Is this your house?
@@ -213,7 +213,7 @@ export function LocateStep({
 
       <div
         className={`relative overflow-hidden rounded-3xl border border-line shadow-[var(--shadow-soft)] ${
-          variant === "card" ? `-mx-2 ${mapHeight}` : mapHeight
+          variant === "card" ? "min-h-0 flex-1" : mapHeight
         }`}
       >
         {centre ? (

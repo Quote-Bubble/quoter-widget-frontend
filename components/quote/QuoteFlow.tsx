@@ -608,21 +608,23 @@ function QuoteFlowBody({
         brandName={brandName}
         onClose={onClose}
       />
-      {/* The panel is a fixed-height viewport in the card (embed) variant, so
-          the step body scrolls INSIDE it (min-h-0 + overflow) rather than
-          resizing the panel - that fixed size is what keeps the iframe, and
-          the host page around it, still. Page variant scrolls the whole
-          document instead. */}
+      {/* The panel is a fixed-height viewport in the card (embed) variant. The
+          step fills it (flex chain: this area -> step -> StepShell), so short
+          steps can center their content and map steps can fill to the edges,
+          instead of sitting top-aligned with blank space below. Overflow-auto
+          is a safety net for anything taller than the fixed panel. Page
+          variant scrolls the whole document instead. */}
       <div
         className={`relative flex-1 ${
           variant === "card"
-            ? "min-h-0 overflow-y-auto overflow-x-hidden"
+            ? "flex min-h-0 flex-col overflow-y-auto overflow-x-hidden"
             : "min-h-0"
         }`}
       >
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={step}
+            className={variant === "card" ? "flex min-h-0 flex-1 flex-col" : undefined}
             initial={{ opacity: 0, y: state.direction * 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{

@@ -39,20 +39,26 @@ export function useFlowVariant(): FlowVariant {
 export function StepShell({
   children,
   className,
+  bleed = false,
 }: {
   children: ReactNode;
   className?: string;
+  /** Card variant only: drop the max-width + padding so the child (a map)
+   *  can fill the panel edge-to-edge. */
+  bleed?: boolean;
 }) {
   const variant = useFlowVariant();
+  // Card: a flex child that fills the panel (flex-1) so short steps center
+  // their content and bleed steps (maps) stretch to the edges. The pinned
+  // BackButton sits over the bottom padding / map, so pb only needs to clear
+  // it on normal steps.
+  const cardClass = bleed
+    ? "max-w-none flex-1 min-h-0 px-2 py-2"
+    : "max-w-xl flex-1 min-h-0 px-5 pt-5 pb-14";
   return (
     <div
-      className={`mx-auto flex w-full max-w-xl flex-col items-stretch px-5 ${
-        variant === "card"
-          ? /* Fixed-height panel: h-full so short steps fill (and center)
-               the panel, taller ones scroll. Bottom padding clears the
-               pinned BackButton's ~52px footprint. */
-            "h-full pb-16 pt-6"
-          : "pb-28 pt-10 sm:pt-16"
+      className={`mx-auto flex w-full flex-col items-stretch ${
+        variant === "card" ? cardClass : "max-w-xl px-5 pb-28 pt-10 sm:pt-16"
       } ${className ?? ""}`}
     >
       {children}

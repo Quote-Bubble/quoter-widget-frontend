@@ -457,10 +457,10 @@ export function DrawCanvas({
     "rounded-full bg-brand-500 px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_8px_18px_-6px_rgba(31,87,240,0.55)] transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
-    <div className={variant === "card" ? "flex flex-col" : ""}>
+    <div className={variant === "card" ? "flex min-h-0 flex-1 flex-col p-2" : ""}>
       <div
         className={`relative overflow-hidden rounded-3xl border border-line shadow-[var(--shadow-soft)] ${
-          variant === "card" ? `-mx-2 ${mapHeight}` : mapHeight
+          variant === "card" ? "min-h-0 flex-1" : mapHeight
         }`}
       >
         <Map
