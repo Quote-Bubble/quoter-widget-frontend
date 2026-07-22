@@ -670,15 +670,16 @@ export function DrawCanvas({
           </span>
         ) : null}
 
-        {/* Non-intrusive hint: a small translucent pill at the top, only while
-            there's still an outline to draw. It disappears once a roof shape is
-            in place, so it never sits over a finished outline. */}
-        {variant === "card" && phase === "faces" && (drawing || roofs.length === 0) ? (
+        {/* Non-intrusive hint: a small translucent pill shown ONLY before the
+            first point is placed. As soon as the user taps once (draft has a
+            point) it disappears, so it never obstructs the drawing. */}
+        {variant === "card" &&
+        phase === "faces" &&
+        roofs.length === 0 &&
+        draft.length === 0 ? (
           <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
             <span className="rounded-full bg-black/45 px-3 py-1.5 text-[12px] font-medium text-white/95 shadow-sm backdrop-blur-sm">
-              {draft.length >= 3
-                ? "Tap the first point to finish"
-                : "Tap each corner of your roof"}
+              Tap each corner of your roof
             </span>
           </div>
         ) : null}
@@ -961,7 +962,7 @@ export function DrawRoofStep({
       : "Arrows point toward the gutter — the direction rainwater leaves the roof.";
 
   return (
-    <StepShell>
+    <StepShell bleed>
       {variant === "page" ? (
         <StepHeading sub={sub} info={info}>
           {heading}
