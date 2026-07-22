@@ -85,7 +85,7 @@ export function AddressStep({
   return (
     <StepShell>
       <StepHeading
-        sub="No ladders — we measure from satellite imagery."
+        sub="We'll use this to find your house on the map."
         info="Your address is only used to find your roof on recent aerial imagery."
       >
         Where&apos;s the roof?
