@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { motion } from "motion/react";
 
 import { InfoTip, StepShell, useFlowVariant } from "@/components/quote/ui";
 import type { CombinedMeasurement } from "@/lib/quote-flow";
@@ -68,6 +69,64 @@ const ICONS: Record<string, ReactNode> = {
   ),
 };
 
+/* "What happens next" tracker steps. First is already complete (the lead was
+   sent at the contact step); the second is the next thing to happen. */
+type NextStep = {
+  key: string;
+  title: string;
+  subtitle: string;
+  icon: ReactNode;
+  done?: boolean;
+  next?: boolean;
+};
+
+const NEXT_STEPS: NextStep[] = [
+  {
+    key: "sent",
+    title: "Details sent",
+    subtitle: "With your roofer now",
+    done: true,
+    icon: (
+      <Icon>
+        <path d="M4 12.5 9.5 18 20 6.5" />
+      </Icon>
+    ),
+  },
+  {
+    key: "call",
+    title: "Your roofer calls",
+    subtitle: "Usually within a day",
+    next: true,
+    icon: (
+      <Icon>
+        <path d="M5 4h3l1.4 5-2 1.2a11 11 0 0 0 5 5l1.2-2 5 1.4V19a2 2 0 0 1-2.2 2A16 16 0 0 1 3 6.2 2 2 0 0 1 5 4Z" />
+      </Icon>
+    ),
+  },
+  {
+    key: "survey",
+    title: "Free home survey",
+    subtitle: "Confirms the exact price",
+    icon: (
+      <Icon>
+        <path d="M3 11 12 4l9 7" />
+        <path d="M5 10v9h14v-9" />
+      </Icon>
+    ),
+  },
+  {
+    key: "quote",
+    title: "Your fixed quote",
+    subtitle: "No obligation",
+    icon: (
+      <Icon>
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <path d="M9 8h6M9 12h6M9 16h4" />
+      </Icon>
+    ),
+  },
+];
+
 type Chip = { key: string; icon: ReactNode; label: string };
 
 export function EstimateStep({
@@ -108,7 +167,7 @@ export function EstimateStep({
   ].filter(Boolean) as Chip[];
 
   return (
-    <StepShell className="justify-center">
+    <StepShell>
       {/* Heading + address */}
       <div className="text-center">
         <h1
@@ -235,6 +294,63 @@ export function EstimateStep({
         )}
       </div>
 
+      {/* What happens next — sleek vertical tracker */}
+      <div className="mx-auto mt-7 w-full max-w-[400px]">
+        <p className="mb-4 text-center text-[12px] font-semibold uppercase tracking-[0.12em] text-muted">
+          What happens next
+        </p>
+        <ol className="relative pl-0.5">
+          {NEXT_STEPS.map((step, i) => (
+            <motion.li
+              key={step.key}
+              className="relative flex gap-3.5 pb-5 last:pb-0"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: 0.15 + i * 0.08,
+                duration: 0.32,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+            >
+              {/* Connector to the next node: solid brand from the done step,
+                  light grey after. */}
+              {i < NEXT_STEPS.length - 1 ? (
+                <span
+                  className={`absolute left-[13px] top-7 bottom-0 w-0.5 ${
+                    step.done ? "bg-brand-500" : "bg-line"
+                  }`}
+                />
+              ) : null}
+              {/* Node */}
+              <span className="relative flex-none">
+                {step.next ? (
+                  <span className="absolute -inset-1 animate-pulse rounded-full bg-brand-500/20" />
+                ) : null}
+                <span
+                  className={`relative grid size-7 place-items-center rounded-full ${
+                    step.done
+                      ? "bg-brand-500 text-white"
+                      : step.next
+                        ? "border-2 border-brand-500 bg-white text-brand-600"
+                        : "border border-line bg-white text-muted"
+                  }`}
+                >
+                  {step.icon}
+                </span>
+              </span>
+              {/* Text */}
+              <div className="min-w-0 pt-0.5">
+                <p className="text-[14px] font-semibold leading-tight text-ink">
+                  {step.title}
+                </p>
+                <p className="mt-0.5 text-[12.5px] leading-tight text-muted">
+                  {step.subtitle}
+                </p>
+              </div>
+            </motion.li>
+          ))}
+        </ol>
+      </div>
     </StepShell>
   );
 }
