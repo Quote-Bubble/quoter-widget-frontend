@@ -148,8 +148,6 @@ function QuoteBubbleShell({
     />
   ) : null;
 
-  const canGo = looksLikeUkPostcode(postcode);
-
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
@@ -221,7 +219,6 @@ function QuoteBubbleShell({
                 <button
                   type="button"
                   className="q-go"
-                  disabled={!canGo}
                   onClick={submitPostcode}
                 >
                   Get quote

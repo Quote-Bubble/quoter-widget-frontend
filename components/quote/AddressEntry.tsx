@@ -33,10 +33,7 @@ export function AddressEntry({
 }: AddressEntryProps) {
   if (variant === "bare") {
     return (
-      <div className="relative min-w-0 flex-1">
-        <label className="q-sr-only" htmlFor="quoter-postcode">
-          Postcode
-        </label>
+      <div className="q-bare-field">
         <input
           id="quoter-postcode"
           type="text"
@@ -60,7 +57,7 @@ export function AddressEntry({
           autoFocus={autoFocus}
           spellCheck={false}
           className="q-bare-input"
-          aria-label="Your postcode"
+          aria-label="Enter your postcode"
         />
       </div>
     );
