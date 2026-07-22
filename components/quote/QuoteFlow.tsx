@@ -24,7 +24,9 @@ import {
   type FlowVariant,
 } from "@/components/quote/ui";
 import { apiUrl } from "@/lib/api";
+import { addressEntryReady } from "@/components/quote/AddressEntry";
 import { materialLabel, materialOptionsFor } from "@/lib/materials";
+import { looksLikeUkPostcode, prettyPostcode } from "@/lib/postcode";
 import {
   JOB_TYPE_OPTIONS,
   PROPERTY_TYPE_OPTIONS,
@@ -382,6 +384,23 @@ function QuoteFlowBody({
 
   function continueFromAddress() {
     clearAdvanceTimer();
+    const line = answers.address.line.trim();
+    const postcode = looksLikeUkPostcode(answers.address.postcode)
+      ? prettyPostcode(answers.address.postcode)
+      : answers.address.postcode.trim();
+    if (!addressEntryReady(line, postcode)) return;
+
+    dispatch({
+      type: "PATCH",
+      patch: {
+        address: {
+          line,
+          postcode,
+          formatted: `${line}, ${postcode}`,
+        },
+      },
+    });
+
     if (returnToLocate) {
       setReturnToLocate(false);
       dispatch({ type: "GO_TO", step: "locate" });
@@ -454,25 +473,6 @@ function QuoteFlowBody({
                 patch: { address: { ...answers.address, line } },
               })
             }
-            onSelect={(formatted, postcode) => {
-              dispatch({
-                type: "PATCH",
-                patch: {
-                  address: {
-                    line: formatted,
-                    postcode: postcode || answers.address.postcode,
-                    formatted,
-                  },
-                },
-              });
-              if (postcode.trim().length >= 5) {
-                clearAdvanceTimer();
-                advanceTimerRef.current = window.setTimeout(() => {
-                  advanceTimerRef.current = null;
-                  continueFromAddress();
-                }, ADVANCE_DELAY_MS);
-              }
-            }}
             onPostcodeChange={(postcode) =>
               dispatch({
                 type: "PATCH",
@@ -729,7 +729,6 @@ export function QuoteFlow(props: QuoteFlowProps) {
   return (
     <APIProvider
       apiKey={apiKey}
-      libraries={["places"]}
       region="GB"
       language="en-GB"
       solutionChannel="quoter-flow"

@@ -182,6 +182,7 @@ body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
 .q-search-icon {
   flex: none;
 }
+.q-bare-input,
 .q-search input {
   /* The input sits inside a block wrapper, not the flex row — size it to the
      wrapper or it overflows onto the button on narrow screens. */
@@ -224,6 +225,19 @@ body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
 .q-go:active {
   transform: translateY(0) scale(0.98);
 }
+.q-go:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+.q-go:disabled:hover {
+  transform: none;
+  filter: none;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 8px 18px -6px rgba(31, 87, 240, 0.55);
+}
 .q-go:focus-visible {
   outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
@@ -265,7 +279,7 @@ body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
     0 4px 6px -1px rgba(10, 11, 13, 0.06),
     0 16px 40px -12px rgba(23, 60, 160, 0.28);
   padding: 6px;
-  /* Entrance is driven by motion in AddressAutocomplete — a CSS animation
+  /* Suggestion list entrance (legacy host styles; dropdown no longer Places). */
      here would fight motion's inline transform mid-flight. */
 }
 .q-suggestions button {
