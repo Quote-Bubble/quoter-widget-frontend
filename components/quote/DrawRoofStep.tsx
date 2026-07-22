@@ -670,16 +670,15 @@ export function DrawCanvas({
           </span>
         ) : null}
 
-        {/* Non-intrusive hint: a small translucent pill shown ONLY before the
-            first point is placed. As soon as the user taps once (draft has a
-            point) it disappears, so it never obstructs the drawing. */}
-        {variant === "card" &&
-        phase === "faces" &&
-        roofs.length === 0 &&
-        draft.length === 0 ? (
+        {/* Small translucent hint pill at the top while there's still an
+            outline to draw; it clears once a roof shape is in place. Kept
+            visible during drawing - the enlarged map makes it unobtrusive. */}
+        {variant === "card" && phase === "faces" && (drawing || roofs.length === 0) ? (
           <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
             <span className="rounded-full bg-black/45 px-3 py-1.5 text-[12px] font-medium text-white/95 shadow-sm backdrop-blur-sm">
-              Tap each corner of your roof
+              {draft.length >= 3
+                ? "Tap the first point to finish"
+                : "Tap each corner of your roof"}
             </span>
           </div>
         ) : null}
