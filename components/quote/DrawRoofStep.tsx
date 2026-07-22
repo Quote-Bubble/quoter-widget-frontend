@@ -15,7 +15,6 @@ import type {
 
 import {
   ContinueBubble,
-  InfoTip,
   PrimaryButton,
   StepHeading,
   StepShell,
@@ -457,7 +456,7 @@ export function DrawCanvas({
     "rounded-full bg-brand-500 px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_8px_18px_-6px_rgba(31,87,240,0.55)] transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
-    <div className={variant === "card" ? "flex min-h-0 flex-1 flex-col p-2" : ""}>
+    <div className={variant === "card" ? "mx-auto flex w-full max-w-none min-h-0 flex-1 flex-col items-stretch p-2" : ""}>
       <div
         className={`relative overflow-hidden rounded-3xl border border-line shadow-[var(--shadow-soft)] ${
           variant === "card" ? "min-h-0 flex-1" : mapHeight
@@ -665,39 +664,17 @@ export function DrawCanvas({
         })}
       </Map>
 
-        {variant === "card" ? (
-          <div className="pointer-events-none absolute left-3 right-3 top-3 z-10 text-center">
-            <p className="text-[17px] font-semibold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]">
-              {phase === "faces"
-                ? mode === "roofline"
-                  ? "Outline the building"
-                  : "Outline your roof"
-                : phase === "gutters"
-                  ? "Mark the gutters"
-                  : "Add roof details"}
-              <span className="pointer-events-auto ml-1.5 inline-block align-middle">
-                <InfoTip>
-                  {phase === "faces"
-                    ? "Tap corners to mark the roof. Close the shape with the first point."
-                    : phase === "gutters"
-                      ? "Tap any edge where water runs into a gutter."
-                      : "Optional: mark chimneys and rooflights to refine the estimate."}
-                </InfoTip>
-              </span>
-            </p>
-          </div>
-        ) : null}
-
+        {/* Only the measured-area badge floats on the map now - the heading
+            and the tap-corners instruction were removed (they sat over the
+            imagery and got in the way). Page variant keeps its own heading. */}
         {variant === "card" && measurementAreaM2 !== null && !drawing && mode === "roof" ? (
-          <span className="absolute left-3 top-12 z-10 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-ink shadow-sm backdrop-blur-sm">
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-ink shadow-sm backdrop-blur-sm">
             ≈ {measurementAreaM2} m²
           </span>
         ) : null}
 
-        {instruction ? (
-          <div className={`pointer-events-none absolute left-3 right-3 flex justify-center ${
-            variant === "card" ? "top-16" : "top-3"
-          }`}>
+        {variant === "page" && instruction ? (
+          <div className="pointer-events-none absolute left-3 right-3 top-3 flex justify-center">
             <span className="rounded-full bg-[rgba(10,11,13,0.75)] px-4 py-2 text-[13px] font-semibold text-white backdrop-blur-sm">
               {instruction}
             </span>
