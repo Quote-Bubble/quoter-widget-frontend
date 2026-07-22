@@ -53,7 +53,10 @@ export function StepShell({
   // BackButton sits over the bottom padding / map, so pb only needs to clear
   // it on normal steps.
   const cardClass = bleed
-    ? "max-w-none flex-1 min-h-0 px-2 py-2"
+    ? // A positioned, height-filling box for a map that fills it via absolute
+      // inset (geometric fill - doesn't depend on the flex/percentage height
+      // chain resolving, which proved unreliable for the Google Map).
+      "relative max-w-none flex-1 min-h-0"
     : "max-w-xl flex-1 min-h-0 px-5 pt-9 pb-14";
   return (
     <div

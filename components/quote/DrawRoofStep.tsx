@@ -456,10 +456,10 @@ export function DrawCanvas({
     "rounded-full bg-brand-500 px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_8px_18px_-6px_rgba(31,87,240,0.55)] transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
-    <div className={variant === "card" ? "mx-auto flex w-full max-w-none min-h-0 flex-1 flex-col items-stretch p-2" : ""}>
+    <div className={variant === "card" ? "relative min-h-0 flex-1" : ""}>
       <div
-        className={`relative overflow-hidden rounded-3xl border border-line shadow-[var(--shadow-soft)] ${
-          variant === "card" ? "min-h-0 flex-1" : mapHeight
+        className={`overflow-hidden rounded-3xl border border-line shadow-[var(--shadow-soft)] ${
+          variant === "card" ? "absolute inset-2" : `relative ${mapHeight}`
         }`}
       >
         <Map
@@ -664,13 +664,23 @@ export function DrawCanvas({
         })}
       </Map>
 
-        {/* Only the measured-area badge floats on the map now - the heading
-            and the tap-corners instruction were removed (they sat over the
-            imagery and got in the way). Page variant keeps its own heading. */}
         {variant === "card" && measurementAreaM2 !== null && !drawing && mode === "roof" ? (
           <span className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-ink shadow-sm backdrop-blur-sm">
             ≈ {measurementAreaM2} m²
           </span>
+        ) : null}
+
+        {/* Non-intrusive hint: a small translucent pill at the top, only while
+            there's still an outline to draw. It disappears once a roof shape is
+            in place, so it never sits over a finished outline. */}
+        {variant === "card" && phase === "faces" && (drawing || roofs.length === 0) ? (
+          <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
+            <span className="rounded-full bg-black/45 px-3 py-1.5 text-[12px] font-medium text-white/95 shadow-sm backdrop-blur-sm">
+              {draft.length >= 3
+                ? "Tap the first point to finish"
+                : "Tap each corner of your roof"}
+            </span>
+          </div>
         ) : null}
 
         {variant === "page" && instruction ? (
