@@ -76,22 +76,32 @@ export function LocateStep({
 
     async function runGeocode() {
       try {
-        const geocodeResponse = await fetch(apiUrl("/api/geocode"), {
+        const url = apiUrl("/api/geocode");
+        const geocodeResponse = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address: addressLine, postcode }),
         });
-        const geocodeBody = (await geocodeResponse.json()) as {
+        const raw = await geocodeResponse.text();
+        let geocodeBody: {
           coords?: LatLng;
           formattedAddress?: string;
           error?: string;
-        };
+        } = {};
+        try {
+          geocodeBody = raw ? (JSON.parse(raw) as typeof geocodeBody) : {};
+        } catch {
+          throw new Error(
+            `Geocode returned non-JSON (${geocodeResponse.status}) from ${url}`,
+          );
+        }
         await holdMinimum();
         if (!geocodeResponse.ok || !geocodeBody.coords) {
-          setError(
-            geocodeBody.error ??
-              "We couldn't find that address. Double-check the house number and postcode.",
-          );
+          const message =
+            typeof geocodeBody.error === "string"
+              ? geocodeBody.error
+              : "We couldn't find that address. Double-check the house number and postcode.";
+          setError(message);
           setPhase("error");
           return;
         }
@@ -103,7 +113,8 @@ export function LocateStep({
         setCentre(next.coords);
         onMapViewChange({ center: next.coords, zoom: 19 });
         setPhase("confirm");
-      } catch {
+      } catch (error) {
+        console.error("[quoter] geocode failed", error);
         await holdMinimum();
         setError(
           "Something went wrong while finding that address. Check your connection and try again.",
