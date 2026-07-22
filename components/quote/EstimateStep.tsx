@@ -140,25 +140,23 @@ export function EstimateStep({
       </div>
 
       {/* Estimate card */}
-      <div className="mx-auto mt-6 w-full overflow-hidden rounded-3xl border border-brand-100 bg-gradient-to-b from-white to-brand-50/40 shadow-[0_16px_44px_-20px_rgba(31,87,240,0.38)]">
-        <div className="px-5 pb-5 pt-6 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-600">
+      <div className="mx-auto mt-6 w-full overflow-hidden rounded-3xl border border-line bg-white shadow-[var(--shadow-soft)]">
+        <div className="px-5 pb-4 pt-5 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
             Estimate
           </p>
           <p
-            className={`mt-2 font-[family-name:var(--font-poppins)] font-semibold leading-tight tracking-tight text-ink ${
-              variant === "card" ? "text-[2.2rem]" : "text-[2rem] sm:text-5xl"
+            className={`mt-1.5 font-[family-name:var(--font-poppins)] font-semibold leading-tight tracking-tight text-ink ${
+              variant === "card" ? "text-[2.1rem]" : "text-[2rem] sm:text-5xl"
             }`}
           >
             {displayQuoteAmount(min, false)} – {displayQuoteAmount(max, false)}
           </p>
-          <p className="mt-1.5 text-[11px] font-medium text-muted">excl. VAT</p>
-          {/* Subtle range accent — reads as "this is a spread, not a fixed price". */}
-          <div className="mx-auto mt-3.5 h-1.5 w-20 rounded-full bg-gradient-to-r from-brand-200 via-brand-400 to-brand-600" />
+          <p className="mt-1 text-[11px] font-medium text-muted">excl. VAT</p>
         </div>
 
         {showBreakdown ? (
-          <div className="border-t border-brand-100/70 px-5 py-4 text-left">
+          <div className="border-t border-line px-5 py-4 text-left">
             <ul className="flex flex-col gap-1.5">
               {quote.lineItems.map((item) => (
                 <li
@@ -174,7 +172,7 @@ export function EstimateStep({
               ))}
             </ul>
             {quote.modelAssumptions.length > 0 ? (
-              <p className="mt-3 border-t border-brand-100/70 pt-2.5 text-[11.5px] leading-relaxed text-muted">
+              <p className="mt-3 border-t border-line pt-2.5 text-[11.5px] leading-relaxed text-muted">
                 {quote.modelAssumptions.join(" ")}
               </p>
             ) : null}
@@ -189,7 +187,7 @@ export function EstimateStep({
         ) : (
           <>
             {chips.length > 0 ? (
-              <div className="flex flex-col divide-y divide-brand-100/70 border-t border-brand-100/70 sm:flex-row sm:divide-x sm:divide-y-0">
+              <div className="flex flex-col divide-y divide-[#e9eaee] border-t border-line sm:flex-row sm:divide-x sm:divide-y-0">
                 {chips.map((chip) => (
                   <span
                     key={chip.key}
@@ -204,39 +202,39 @@ export function EstimateStep({
             <button
               type="button"
               onClick={() => setShowBreakdown(true)}
-              className="w-full border-t border-brand-100/70 py-3.5 text-center text-[13.5px] font-semibold text-brand-600 transition-colors hover:bg-brand-50/60 hover:text-brand-700"
+              className="flex w-full items-center gap-3 border-t border-line px-5 py-3.5 text-left text-[15px] font-semibold text-brand-600 transition-colors hover:text-brand-700"
             >
-              See what&apos;s included →
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-5 flex-none"
+                aria-hidden="true"
+              >
+                <rect x="4" y="3" width="16" height="18" rx="2.5" />
+                <path d="M8 8h5M8 12h8M8 16h8" />
+              </svg>
+              <span className="flex-1">See what&apos;s included</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-4 flex-none text-brand-500"
+                aria-hidden="true"
+              >
+                <path d="m9 6 6 6-6 6" />
+              </svg>
             </button>
           </>
         )}
       </div>
 
-      {/* Trust callout */}
-      <div className="mx-auto mt-4 flex w-full items-start gap-3 rounded-2xl border border-brand-100/60 bg-brand-50/80 p-4">
-        <svg
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="mt-0.5 size-5 flex-none text-brand-600"
-          aria-hidden="true"
-        >
-          <path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3Z" opacity="0.18" />
-          <path
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3ZM9 12l2 2 4-4"
-          />
-        </svg>
-        <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-ink">Independent &amp; free</p>
-          <p className="mt-0.5 text-[13px] leading-snug text-muted">
-            Quoter is 100% independent and your estimate is free.
-          </p>
-        </div>
-      </div>
     </StepShell>
   );
 }
