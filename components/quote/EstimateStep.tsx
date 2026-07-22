@@ -167,9 +167,9 @@ export function EstimateStep({
   ].filter(Boolean) as Chip[];
 
   return (
-    <StepShell>
+    <StepShell className="overflow-y-auto">
       {/* Heading + address */}
-      <div className="text-center">
+      <div className="shrink-0 text-center">
         <h1
           tabIndex={-1}
           className={`text-balance font-[family-name:var(--font-poppins)] font-semibold leading-tight tracking-tight text-ink outline-none ${
@@ -199,7 +199,7 @@ export function EstimateStep({
       </div>
 
       {/* Estimate card */}
-      <div className="mx-auto mt-6 w-full overflow-hidden rounded-3xl border border-line bg-white shadow-[var(--shadow-soft)]">
+      <div className="mx-auto mt-6 w-full shrink-0 overflow-hidden rounded-3xl border border-line bg-white shadow-[var(--shadow-soft)]">
         <div className="px-5 pb-4 pt-5 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
             Estimate
@@ -295,7 +295,7 @@ export function EstimateStep({
       </div>
 
       {/* What happens next — sleek vertical tracker */}
-      <div className="mx-auto mt-7 w-full max-w-[400px]">
+      <div className="mx-auto mt-7 w-full max-w-[400px] shrink-0 pb-1">
         <p className="mb-4 text-center text-[12px] font-semibold uppercase tracking-[0.12em] text-muted">
           What happens next
         </p>
