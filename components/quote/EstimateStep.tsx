@@ -66,24 +66,6 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M3 8h18" />
     </Icon>
   ),
-  roof: (
-    <Icon>
-      <path d="M3 12 12 5l9 7" />
-      <path d="M5 11v7h14v-7" />
-    </Icon>
-  ),
-  vat: (
-    <Icon>
-      <rect x="5" y="3" width="14" height="18" rx="2" />
-      <path d="M9 8h6M9 12h6M9 16h4" />
-    </Icon>
-  ),
-  material: (
-    <Icon>
-      <path d="M12 3 3 8l9 5 9-5-9-5Z" />
-      <path d="m3 13 9 5 9-5" />
-    </Icon>
-  ),
 };
 
 type Chip = { key: string; icon: ReactNode; label: string };
@@ -92,8 +74,6 @@ export function EstimateStep({
   quote,
   measurement,
   address,
-  materialLabelText,
-  jobLabel,
   contactName,
 }: {
   quote: QuoteResult;
@@ -124,11 +104,6 @@ export function EstimateStep({
       : null,
     gutter !== null
       ? { key: "gutter", icon: ICONS.gutter, label: `≈ ${gutter} m gutter` }
-      : null,
-    { key: "job", icon: ICONS.roof, label: jobLabel },
-    { key: "vat", icon: ICONS.vat, label: "Excl. VAT" },
-    materialLabelText
-      ? { key: "material", icon: ICONS.material, label: materialLabelText }
       : null,
   ].filter(Boolean) as Chip[];
 
@@ -177,6 +152,7 @@ export function EstimateStep({
           >
             {displayQuoteAmount(min, false)} – {displayQuoteAmount(max, false)}
           </p>
+          <p className="mt-1 text-[11px] font-medium text-muted">excl. VAT</p>
         </div>
 
         {showBreakdown ? (
@@ -210,17 +186,19 @@ export function EstimateStep({
           </div>
         ) : (
           <>
-            <div className="flex flex-col divide-y divide-[#e9eaee] border-t border-line sm:flex-row sm:divide-x sm:divide-y-0">
-              {chips.map((chip) => (
-                <span
-                  key={chip.key}
-                  className="flex min-w-0 flex-1 items-center justify-center gap-1.5 px-2 py-2.5 text-center text-[12.5px] font-medium text-ink-soft"
-                >
-                  <span className="text-brand-500">{chip.icon}</span>
-                  <span className="truncate">{chip.label}</span>
-                </span>
-              ))}
-            </div>
+            {chips.length > 0 ? (
+              <div className="flex flex-col divide-y divide-[#e9eaee] border-t border-line sm:flex-row sm:divide-x sm:divide-y-0">
+                {chips.map((chip) => (
+                  <span
+                    key={chip.key}
+                    className="flex min-w-0 flex-1 items-center justify-center gap-1.5 px-2 py-2.5 text-center text-[12.5px] font-medium text-ink-soft"
+                  >
+                    <span className="text-brand-500">{chip.icon}</span>
+                    <span className="truncate">{chip.label}</span>
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={() => setShowBreakdown(true)}
