@@ -56,6 +56,31 @@ import {
 
 type SubmitStatus = "idle" | "busy" | "error" | "done";
 
+/** Dev-only: which step to jump straight to, from ?preview= in the URL. */
+export function previewStep(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return new URLSearchParams(window.location.search).get("preview");
+  } catch {
+    return null;
+  }
+}
+
+/** Mock answers that yield a real (repair) quote — used by ?preview=estimate. */
+function buildPreviewAnswers(rooferId: string): QuoteFlowAnswers {
+  const answers = createFlowAnswers(rooferId, {
+    line: "65 Gannicox Rd, Stroud",
+    postcode: "GL5 4HA",
+    formatted: "65 Gannicox Rd, Stroud GL5 4HA, UK",
+  });
+  answers.jobType = "tile_or_slate_repair";
+  answers.repairBandId = "section";
+  answers.material = "natural_slate";
+  answers.condition = "not_sure";
+  answers.contact = { name: "Rafil Gohar", phone: "07000000000", email: "" };
+  return answers;
+}
+
 type FlowState = {
   answers: QuoteFlowAnswers;
   step: FlowStepId;
@@ -186,6 +211,18 @@ function QuoteFlowBody({
     reducer,
     undefined,
     (): FlowState => {
+      // Dev shortcut: ?preview=estimate seeds a finished repair estimate so
+      // the estimate screen can be opened directly while designing it, without
+      // clicking through the whole flow.
+      if (previewStep() === "estimate") {
+        return {
+          answers: buildPreviewAnswers(rooferId),
+          step: "estimate",
+          direction: 1,
+          submitStatus: "idle",
+          submitError: null,
+        };
+      }
       const answers = createFlowAnswers(rooferId, {
         line: initialAddress?.line ?? "",
         postcode: initialAddress?.postcode ?? "",

@@ -62,6 +62,19 @@ function QuoteBubbleShell({
     flushPendingLead();
   }, [rooferId]);
 
+  // Dev shortcut: ?preview=estimate auto-opens the flow straight to the
+  // (mock) estimate screen so it can be designed without clicking through.
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get("preview") === "estimate") {
+        openFlow("65 Gannicox Rd, Stroud", "GL5 4HA", "65 Gannicox Rd, Stroud GL5 4HA, UK");
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!expanded) return;
     const frame = window.requestAnimationFrame(() => {
