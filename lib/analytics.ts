@@ -37,6 +37,26 @@ export type QuoteEvent =
   | "lead_submitted"
   | "lead_failed";
 
+/**
+ * The page the widget is running ON, not the widget's own URL.
+ *
+ * Inside the embed iframe `location.href` is always the widget's own address,
+ * so it can never tell us which roofer's site a session came from — which is
+ * exactly what we want it for (spotting that an install has gone live, seeing
+ * which pages convert). For a framed document the referrer is the parent page,
+ * so prefer that and fall back when it's unavailable.
+ */
+function pageUrl(): string {
+  try {
+    if (window.self !== window.top && document.referrer) {
+      return document.referrer;
+    }
+  } catch {
+    // Cross-origin access can throw in odd embeddings; fall through.
+  }
+  return window.location.href;
+}
+
 export function track(
   event: QuoteEvent,
   props: Record<string, unknown> = {},
@@ -48,7 +68,7 @@ export function track(
       rooferId,
       sessionId: getSessionId(),
       ts: new Date().toISOString(),
-      url: window.location.href,
+      url: pageUrl(),
       props,
     });
     const url = apiUrl("/api/event");
