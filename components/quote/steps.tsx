@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-import { AddressAutocomplete } from "@/components/quote/AddressAutocomplete";
+import { AddressEntry, addressEntryReady } from "@/components/quote/AddressEntry";
 import { MaterialSwatch } from "@/components/quote/MaterialSwatch";
 import {
   InfoCallout,
@@ -72,18 +72,16 @@ export function AddressStep({
   line,
   postcode,
   onLineChange,
-  onSelect,
   onPostcodeChange,
   onContinue,
 }: {
   line: string;
   postcode: string;
   onLineChange: (value: string) => void;
-  onSelect: (formatted: string, postcode: string) => void;
   onPostcodeChange: (value: string) => void;
   onContinue: () => void;
 }) {
-  const ready = line.trim().length > 3 && postcode.trim().length >= 5;
+  const ready = addressEntryReady(line, postcode);
   return (
     <StepShell>
       <StepHeading
@@ -92,31 +90,16 @@ export function AddressStep({
       >
         Where&apos;s the roof?
       </StepHeading>
-      <label className={flowLabelClass} htmlFor="quote-address">
-        Address
-      </label>
-      <div id="quote-address">
-        <AddressAutocomplete
-          value={line}
-          onChange={onLineChange}
-          onSelect={onSelect}
-          autoFocus
-        />
-      </div>
-      <div className="mt-4">
-        <label className={flowLabelClass} htmlFor="quote-postcode">
-          Postcode
-        </label>
-        <input
-          id="quote-postcode"
-          type="text"
-          value={postcode}
-          onChange={(event) => onPostcodeChange(event.target.value.toUpperCase())}
-          placeholder="e.g. SW1A 2AA"
-          autoComplete="postal-code"
-          className={flowInputClass}
-        />
-      </div>
+      <AddressEntry
+        line={line}
+        postcode={postcode}
+        onLineChange={onLineChange}
+        onPostcodeChange={onPostcodeChange}
+        autoFocus
+        onSubmit={() => {
+          if (ready) onContinue();
+        }}
+      />
       <PrimaryButton onClick={onContinue} disabled={!ready}>
         Continue
       </PrimaryButton>

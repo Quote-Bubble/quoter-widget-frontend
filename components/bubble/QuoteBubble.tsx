@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 
-import { AddressAutocomplete } from "@/components/quote/AddressAutocomplete";
+import { AddressEntry } from "@/components/quote/AddressEntry";
 import { QuoteFlowInner } from "@/components/quote/QuoteFlow";
 import {
   MOTION_DURATION,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/motion";
 import { initAnalytics, track } from "@/lib/analytics";
 import { flushPendingLead } from "@/lib/pending-lead";
+import { looksLikeUkPostcode, prettyPostcode } from "@/lib/postcode";
 
 type QuoteBubbleProps = {
   rooferId?: string;
@@ -45,11 +46,10 @@ function QuoteBubbleShell({
   brandName = "Quoter",
   mapsEnabled,
 }: QuoteBubbleProps & { mapsEnabled: boolean }) {
-  const [line, setLine] = useState("");
+  const [postcode, setPostcode] = useState("");
   const [flow, setFlow] = useState<OpenFlow | null>(null);
   const [flowReady, setFlowReady] = useState(false);
   const [flowKey, setFlowKey] = useState(0);
-  const [suggesting, setSuggesting] = useState(false);
   const [showAddressHint, setShowAddressHint] = useState(false);
   const hintTimerRef = useRef<number | null>(null);
   const isDesktop = useIsDesktop();
@@ -58,16 +58,17 @@ function QuoteBubbleShell({
 
   useEffect(() => {
     initAnalytics(rooferId);
-    // Re-send any lead stashed but never confirmed on a prior visit.
     flushPendingLead();
   }, [rooferId]);
 
-  // Dev shortcut: ?preview=estimate auto-opens the flow straight to the
-  // (mock) estimate screen so it can be designed without clicking through.
   useEffect(() => {
     try {
       if (new URLSearchParams(window.location.search).get("preview") === "estimate") {
-        openFlow("65 Gannicox Rd, Stroud", "GL5 4HA", "65 Gannicox Rd, Stroud GL5 4HA, UK");
+        openFlow(
+          "65 Gannicox Rd, Stroud",
+          "GL5 4HA",
+          "65 Gannicox Rd, Stroud GL5 4HA, UK",
+        );
       }
     } catch {
       /* ignore */
@@ -101,9 +102,13 @@ function QuoteBubbleShell({
     };
   }, []);
 
-  function submitAddress(text: string) {
-    if (text.trim().length > 3) {
-      openFlow(text, "", null);
+  function submitPostcode() {
+    const tidy = looksLikeUkPostcode(postcode)
+      ? prettyPostcode(postcode)
+      : postcode.trim();
+    if (looksLikeUkPostcode(tidy)) {
+      if (tidy !== postcode) setPostcode(tidy);
+      openFlow("", tidy, null);
       return;
     }
     setShowAddressHint(true);
@@ -114,11 +119,10 @@ function QuoteBubbleShell({
     );
   }
 
-  function openFlow(nextLine: string, postcode: string, formatted: string | null) {
+  function openFlow(nextLine: string, nextPostcode: string, formatted: string | null) {
     const key = flowKey + 1;
     setFlowKey(key);
-    setSuggesting(false);
-    setFlow({ key, line: nextLine, postcode, formatted });
+    setFlow({ key, line: nextLine, postcode: nextPostcode, formatted });
     track("widget_opened");
   }
 
@@ -144,20 +148,17 @@ function QuoteBubbleShell({
     />
   ) : null;
 
+  const canGo = looksLikeUkPostcode(postcode);
+
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
         className="q"
         id="quoter-widget"
         data-stage={expanded ? "flow" : "input"}
-        data-suggesting={suggesting && !flow ? "true" : "false"}
+        data-suggesting="false"
         initial={false}
         animate={{
-          /* Exactly two fixed heights. The panel never grows to fit its
-             content (taller steps scroll inside it), so this only ever
-             animates between collapsed and expanded - which is what keeps
-             the embedding iframe, and the host page around it, perfectly
-             still except for this one clean transition. */
           height: expanded ? QUOTE_SIZES.expanded : QUOTE_SIZES.collapsed,
         }}
         transition={SHELL_TRANSITION}
@@ -206,26 +207,22 @@ function QuoteBubbleShell({
                     strokeWidth="2"
                   />
                 </svg>
-                <div className="relative min-w-0 flex-1">
-                  <AddressAutocomplete
-                    value={line}
-                    onChange={(value) => {
-                      setLine(value);
-                      if (showAddressHint) setShowAddressHint(false);
-                    }}
-                    onOpenChange={setSuggesting}
-                    onSelect={(formatted, postcode) =>
-                      openFlow(formatted, postcode, formatted)
-                    }
-                    onSubmitText={submitAddress}
-                    variant="bare"
-                    placeholder="Enter your address"
-                  />
-                </div>
+                <AddressEntry
+                  variant="bare"
+                  line=""
+                  postcode={postcode}
+                  onLineChange={() => {}}
+                  onPostcodeChange={(value) => {
+                    setPostcode(value);
+                    if (showAddressHint) setShowAddressHint(false);
+                  }}
+                  onSubmit={submitPostcode}
+                />
                 <button
                   type="button"
                   className="q-go"
-                  onClick={() => submitAddress(line)}
+                  disabled={!canGo}
+                  onClick={submitPostcode}
                 >
                   Get quote
                   <svg
@@ -247,7 +244,7 @@ function QuoteBubbleShell({
               </div>
               {showAddressHint && (
                 <p className="q-hint" role="alert">
-                  Enter your address to get a quote
+                  Enter a valid UK postcode to get a quote
                 </p>
               )}
             </motion.div>
@@ -289,7 +286,6 @@ export function QuoteBubble(props: QuoteBubbleProps) {
   return (
     <APIProvider
       apiKey={apiKey}
-      libraries={["places"]}
       region="GB"
       language="en-GB"
       solutionChannel="quoter-bubble"
