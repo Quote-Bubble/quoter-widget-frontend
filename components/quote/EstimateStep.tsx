@@ -84,7 +84,7 @@ const NEXT_STEPS: NextStep[] = [
   {
     key: "sent",
     title: "Details sent",
-    subtitle: "With your roofer now",
+    subtitle: "With your roofer",
     done: true,
     icon: (
       <Icon>
@@ -94,8 +94,8 @@ const NEXT_STEPS: NextStep[] = [
   },
   {
     key: "call",
-    title: "Your roofer calls",
-    subtitle: "Usually within a day",
+    title: "Roofer calls",
+    subtitle: "Within a day",
     next: true,
     icon: (
       <Icon>
@@ -105,8 +105,8 @@ const NEXT_STEPS: NextStep[] = [
   },
   {
     key: "survey",
-    title: "Free home survey",
-    subtitle: "Confirms the exact price",
+    title: "Free survey",
+    subtitle: "Exact price",
     icon: (
       <Icon>
         <path d="M3 11 12 4l9 7" />
@@ -116,7 +116,7 @@ const NEXT_STEPS: NextStep[] = [
   },
   {
     key: "quote",
-    title: "Your fixed quote",
+    title: "Fixed quote",
     subtitle: "No obligation",
     icon: (
       <Icon>
@@ -294,62 +294,71 @@ export function EstimateStep({
         )}
       </div>
 
-      {/* What happens next — sleek vertical tracker */}
-      <div className="mx-auto mt-7 w-full max-w-[400px] shrink-0 pb-1">
+      {/* What happens next — sleek horizontal tracker */}
+      <div className="mx-auto mt-6 w-full max-w-[560px] shrink-0">
         <p className="mb-4 text-center text-[12px] font-semibold uppercase tracking-[0.12em] text-muted">
           What happens next
         </p>
-        <ol className="relative pl-0.5">
-          {NEXT_STEPS.map((step, i) => (
-            <motion.li
-              key={step.key}
-              className="relative flex gap-3.5 pb-5 last:pb-0"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay: 0.15 + i * 0.08,
-                duration: 0.32,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-            >
-              {/* Connector to the next node: solid brand from the done step,
-                  light grey after. */}
-              {i < NEXT_STEPS.length - 1 ? (
-                <span
-                  className={`absolute left-[13px] top-7 bottom-0 w-0.5 ${
-                    step.done ? "bg-brand-500" : "bg-line"
-                  }`}
-                />
-              ) : null}
-              {/* Node */}
-              <span className="relative flex-none">
-                {step.next ? (
-                  <span className="absolute -inset-1 animate-pulse rounded-full bg-brand-500/20" />
-                ) : null}
-                <span
-                  className={`relative grid size-7 place-items-center rounded-full ${
-                    step.done
-                      ? "bg-brand-500 text-white"
-                      : step.next
-                        ? "border-2 border-brand-500 bg-white text-brand-600"
-                        : "border border-line bg-white text-muted"
-                  }`}
-                >
-                  {step.icon}
-                </span>
-              </span>
-              {/* Text */}
-              <div className="min-w-0 pt-0.5">
-                <p className="text-[14px] font-semibold leading-tight text-ink">
+        <div className="flex items-start">
+          {NEXT_STEPS.map((step, i) => {
+            const leftBrand = i > 0 && Boolean(NEXT_STEPS[i - 1].done);
+            const rightBrand = Boolean(step.done);
+            return (
+              <motion.div
+                key={step.key}
+                className="flex flex-1 flex-col items-center px-1 text-center"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  delay: 0.15 + i * 0.08,
+                  duration: 0.32,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+              >
+                {/* Node + connectors. Line is solid brand out of the done step,
+                    light grey after. */}
+                <div className="relative flex h-7 w-full items-center justify-center">
+                  {i > 0 ? (
+                    <span
+                      className={`absolute left-0 right-1/2 top-1/2 h-0.5 -translate-y-1/2 ${
+                        leftBrand ? "bg-brand-500" : "bg-line"
+                      }`}
+                    />
+                  ) : null}
+                  {i < NEXT_STEPS.length - 1 ? (
+                    <span
+                      className={`absolute left-1/2 right-0 top-1/2 h-0.5 -translate-y-1/2 ${
+                        rightBrand ? "bg-brand-500" : "bg-line"
+                      }`}
+                    />
+                  ) : null}
+                  <span className="relative">
+                    {step.next ? (
+                      <span className="absolute -inset-1 animate-pulse rounded-full bg-brand-500/20" />
+                    ) : null}
+                    <span
+                      className={`relative grid size-7 place-items-center rounded-full ${
+                        step.done
+                          ? "bg-brand-500 text-white"
+                          : step.next
+                            ? "border-2 border-brand-500 bg-white text-brand-600"
+                            : "border border-line bg-white text-muted"
+                      }`}
+                    >
+                      {step.icon}
+                    </span>
+                  </span>
+                </div>
+                <p className="mt-2 text-[12.5px] font-semibold leading-tight text-ink">
                   {step.title}
                 </p>
-                <p className="mt-0.5 text-[12.5px] leading-tight text-muted">
+                <p className="mt-0.5 text-[11px] leading-tight text-muted">
                   {step.subtitle}
                 </p>
-              </div>
-            </motion.li>
-          ))}
-        </ol>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </StepShell>
   );
