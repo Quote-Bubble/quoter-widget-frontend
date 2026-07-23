@@ -8,13 +8,8 @@ import type { Transition } from "motion/react";
  * layout perfectly still (see the overlay model in the landing LiveWidget).
  */
 export const QUOTE_SIZES = {
-  /** The glass card (.q) itself when collapsed — its natural search-bar
-   *  height. The "powered by Quoter" caption sits OUTSIDE this, below the
-   *  card, so the bubble never grows just to hold the credit. */
-  collapsedBar: 90,
-  /** Full collapsed iframe height = the card + the caption beneath it. This
-   *  is what the embed sizes the iframe to. */
-  collapsed: 112,
+  /** Collapsed search bar — border-box height of the whole .q card. */
+  collapsed: 90,
   /** Expanded panel — fixed; the step body scrolls internally past this. */
   expanded: 544,
 } as const;
