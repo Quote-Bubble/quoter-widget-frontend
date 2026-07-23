@@ -27,7 +27,10 @@ export default async function EmbedPage({
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "center",
-        padding: 0,
+        // Horizontal room so the card's drop shadow isn't clipped at the
+        // iframe's left/right edges (the vertical room comes from the iframe
+        // height reserving space below the card).
+        padding: "0 22px",
         background: "transparent",
       }}
     >
