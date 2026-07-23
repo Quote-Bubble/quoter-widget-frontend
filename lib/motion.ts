@@ -15,8 +15,12 @@ export const QUOTE_SIZES = {
    *  drop shadow to render (the card is top-aligned in the iframe). Without
    *  this the iframe clips the shadow at the bar's bottom edge. */
   collapsed: 120,
-  /** Expanded panel — fixed; the step body scrolls internally past this. */
-  expanded: 544,
+  /** The expanded panel card itself — the step body scrolls internally past
+   *  this. */
+  expandedPanel: 544,
+  /** Full expanded iframe height = the panel + the same shadow room below, so
+   *  the panel's drop shadow isn't clipped at the bottom corners. */
+  expanded: 574,
 } as const;
 
 export const EASE_OUT = [0.16, 1, 0.3, 1] as const;

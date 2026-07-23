@@ -162,7 +162,7 @@ function QuoteBubbleShell({
         data-suggesting="false"
         initial={false}
         animate={{
-          height: expanded ? QUOTE_SIZES.expanded : QUOTE_SIZES.collapsedBar,
+          height: expanded ? QUOTE_SIZES.expandedPanel : QUOTE_SIZES.collapsedBar,
         }}
         transition={SHELL_TRANSITION}
       >
