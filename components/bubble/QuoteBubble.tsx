@@ -162,7 +162,7 @@ function QuoteBubbleShell({
         data-suggesting="false"
         initial={false}
         animate={{
-          height: expanded ? QUOTE_SIZES.expanded : QUOTE_SIZES.collapsed,
+          height: expanded ? QUOTE_SIZES.expanded : QUOTE_SIZES.collapsedBar,
         }}
         transition={SHELL_TRANSITION}
       >
@@ -247,19 +247,25 @@ function QuoteBubbleShell({
                   Enter a valid UK postcode to get a quote
                 </p>
               )}
-              <a
-                className="q-powered"
-                href="https://quoter-web-six.vercel.app"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className="q-powered-label">powered by</span>
-                <span className="q-powered-mark">Quoter</span>
-              </a>
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* "powered by Quoter" sits OUTSIDE the glass card, on the host page's
+          background, so the bubble keeps its natural size. Only on the
+          collapsed bar — the opened flow has its own header credit. */}
+      {!expanded ? (
+        <a
+          className="q-powered"
+          href="https://quoter-web-six.vercel.app"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span className="q-powered-label">powered by</span>
+          <span className="q-powered-mark">Quoter</span>
+        </a>
+      ) : null}
 
       {!isDesktop && typeof document !== "undefined"
         ? createPortal(

@@ -269,7 +269,7 @@ body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
   align-items: baseline;
   justify-content: flex-end;
   gap: 4px;
-  margin: 7px 2px 0;
+  margin: 9px 4px 0;
   text-decoration: none;
   transition: opacity 0.15s ease;
 }
