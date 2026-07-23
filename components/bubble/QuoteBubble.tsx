@@ -253,7 +253,8 @@ function QuoteBubbleShell({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Powered by <span>Quoter</span>
+                <span className="q-powered-label">Powered by</span>
+                <span className="q-powered-mark">Quoter</span>
               </a>
             </motion.div>
           )}

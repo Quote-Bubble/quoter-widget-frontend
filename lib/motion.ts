@@ -10,7 +10,7 @@ import type { Transition } from "motion/react";
 export const QUOTE_SIZES = {
   /** Collapsed search bar — border-box height of the whole .q card,
    *  including the small "Powered by Quoter" caption beneath the bar. */
-  collapsed: 112,
+  collapsed: 118,
   /** Expanded panel — fixed; the step body scrolls internally past this. */
   expanded: 544,
 } as const;

@@ -265,18 +265,24 @@ body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
    flywheel: every embed quietly shows the brand. Kept small and muted so it
    never competes with the roofer's own site. */
 .q-powered {
-  display: block;
-  margin: 9px 4px 0;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--color-brand-600);
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+  margin: 8px 4px 0;
   text-decoration: none;
   transition: opacity 0.15s ease;
 }
-.q-powered span {
+.q-powered-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-brand-600);
+}
+.q-powered-mark {
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
   font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-ink);
 }
 .q-powered:hover {
