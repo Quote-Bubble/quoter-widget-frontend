@@ -5,7 +5,11 @@ export function normalisePostcode(value: string): string {
 
 /** Rough UK postcode shape (outward + inward). */
 export function looksLikeUkPostcode(value: string): boolean {
-  return /^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(normalisePostcode(value));
+  const compact = normalisePostcode(value);
+  return (
+    compact === "GIR0AA" ||
+    /^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(compact)
+  );
 }
 
 /** "SW194EH" -> "SW19 4EH" for display. */

@@ -6,6 +6,7 @@ import {
   buildLeadPayload,
   computeFlowQuote,
   createFlowAnswers,
+  displayAddress,
   drawApproach,
   emptyDrawnRoof,
   flowPath,
@@ -167,6 +168,23 @@ describe("step sequencing", () => {
     }
     expect(values[0]).toBe(0);
     expect(values[values.length - 1]).toBe(100);
+  });
+});
+
+describe("address display", () => {
+  it("uses the postcode when a postcode-only flow has no resolved address", () => {
+    const answers = createFlowAnswers("r", { postcode: "LS1 1AA" });
+    expect(displayAddress(answers.address)).toBe("LS1 1AA");
+  });
+
+  it("prefers the pin-derived formatted address", () => {
+    const answers = createFlowAnswers("r", {
+      postcode: "LS1 1AA",
+      formatted: "12 Example Street, Leeds LS1 1AA, UK",
+    });
+    expect(displayAddress(answers.address)).toBe(
+      "12 Example Street, Leeds LS1 1AA, UK",
+    );
   });
 });
 

@@ -24,7 +24,6 @@ type QuoteBubbleProps = {
 
 type OpenFlow = {
   key: number;
-  line: string;
   postcode: string;
   formatted: string | null;
 };
@@ -56,23 +55,37 @@ function QuoteBubbleShell({
 
   const expanded = Boolean(flow && isDesktop);
 
+  function openFlow(nextPostcode: string, formatted: string | null) {
+    const key = flowKey + 1;
+    setFlowKey(key);
+    setFlow({ key, postcode: nextPostcode, formatted });
+    track("widget_opened");
+  }
+
   useEffect(() => {
     initAnalytics(rooferId);
     flushPendingLead();
   }, [rooferId]);
 
   useEffect(() => {
+    let previewTimer: number | null = null;
     try {
       if (new URLSearchParams(window.location.search).get("preview") === "estimate") {
-        openFlow(
-          "65 Gannicox Rd, Stroud",
-          "GL5 4HA",
-          "65 Gannicox Rd, Stroud GL5 4HA, UK",
+        previewTimer = window.setTimeout(
+          () =>
+            openFlow(
+              "GL5 4HA",
+              "65 Gannicox Rd, Stroud GL5 4HA, UK",
+            ),
+          0,
         );
       }
     } catch {
       /* ignore */
     }
+    return () => {
+      if (previewTimer !== null) window.clearTimeout(previewTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -108,7 +121,7 @@ function QuoteBubbleShell({
       : postcode.trim();
     if (looksLikeUkPostcode(tidy)) {
       if (tidy !== postcode) setPostcode(tidy);
-      openFlow("", tidy, null);
+      openFlow(tidy, null);
       return;
     }
     setShowAddressHint(true);
@@ -117,13 +130,6 @@ function QuoteBubbleShell({
       () => setShowAddressHint(false),
       2400,
     );
-  }
-
-  function openFlow(nextLine: string, nextPostcode: string, formatted: string | null) {
-    const key = flowKey + 1;
-    setFlowKey(key);
-    setFlow({ key, line: nextLine, postcode: nextPostcode, formatted });
-    track("widget_opened");
   }
 
   function closeFlow() {

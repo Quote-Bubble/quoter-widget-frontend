@@ -38,6 +38,7 @@ export function LocateStep({
   onMapViewChange,
   onSuccess,
   onFallback,
+  onAddressResolved,
   onEditAddress,
 }: {
   postcode: string;
@@ -58,6 +59,7 @@ export function LocateStep({
   onMapViewChange: (view: { center: LatLng; zoom: number }) => void;
   onSuccess: (coords: LatLng, formatted: string | null, scan: SolarScan) => void;
   onFallback: (coords: LatLng | null, formatted: string | null, reason: string) => void;
+  onAddressResolved: (coords: LatLng, formatted: string) => void;
   onEditAddress: () => void;
 }) {
   const variant = useFlowVariant();
@@ -144,17 +146,40 @@ export function LocateStep({
 
   async function confirmAndScan() {
     if (!geocoded || !centre) return;
+    const confirmedCoords = centre;
 
     if (
       previousScan &&
-      haversineM(centre, previousScan.coords) <= SAME_ROOF_RADIUS_M
+      haversineM(confirmedCoords, previousScan.coords) <= SAME_ROOF_RADIUS_M
     ) {
-      onSuccess(centre, previousScan.formatted, previousScan.scan);
+      onSuccess(confirmedCoords, previousScan.formatted, previousScan.scan);
       return;
     }
 
     setPhase("scanning");
     const startedAt = performance.now();
+    let formatted = geocoded.formatted;
+    const reverseGeocode = fetch(apiUrl("/api/reverse-geocode"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ coords: confirmedCoords }),
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const body = (await response.json()) as { formattedAddress?: string };
+        return typeof body.formattedAddress === "string" && body.formattedAddress
+          ? body.formattedAddress
+          : null;
+      })
+      .catch(() => null);
+    // This request is a display upgrade only. Do not await it before taking the
+    // user onward; if it arrives later, QuoteFlow applies it only if this pin
+    // and postcode are still current.
+    void reverseGeocode.then((resolved) => {
+      if (!resolved) return;
+      formatted = resolved;
+      onAddressResolved(confirmedCoords, resolved);
+    });
 
     async function holdMinimum() {
       const elapsed = performance.now() - startedAt;
@@ -166,22 +191,11 @@ export function LocateStep({
     }
 
     try {
-      const [solarResponse, reverseGeocodeResponse] = await Promise.all([
-        fetch(apiUrl("/api/solar"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ coords: centre }),
-        }),
-        // Best-effort upgrade from the postcode+district label to a real
-        // street address, using the exact pin the homeowner just confirmed.
-        // Piggybacks on this same click so it adds no extra step or gate —
-        // and a failure here never blocks the roof scan itself.
-        fetch(apiUrl("/api/reverse-geocode"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ coords: centre }),
-        }).catch(() => null),
-      ]);
+      const solarResponse = await fetch(apiUrl("/api/solar"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coords: confirmedCoords }),
+      });
       const solarBody = (await solarResponse.json()) as {
         scan?: SolarScan;
       };
@@ -189,26 +203,14 @@ export function LocateStep({
 
       if (!solarResponse.ok || !solarBody.scan) {
         onFallback(
-          centre,
-          geocoded.formatted,
+          confirmedCoords,
+          formatted,
           "Satellite measurement isn't available for this roof yet, so your roofer will price it after a quick call instead.",
         );
         return;
       }
 
-      let formatted = geocoded.formatted;
-      if (reverseGeocodeResponse?.ok) {
-        try {
-          const reverseBody = (await reverseGeocodeResponse.json()) as {
-            formattedAddress?: string;
-          };
-          if (reverseBody.formattedAddress) formatted = reverseBody.formattedAddress;
-        } catch {
-          // Keep the postcode+district fallback — this call is best-effort only.
-        }
-      }
-
-      onSuccess(centre, formatted, solarBody.scan);
+      onSuccess(confirmedCoords, formatted, solarBody.scan);
     } catch {
       await holdMinimum();
       setError(

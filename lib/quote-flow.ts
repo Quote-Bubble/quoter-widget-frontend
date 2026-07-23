@@ -106,6 +106,13 @@ export function createFlowAnswers(
   };
 }
 
+/** Human-readable location for quote screens when no pin-derived address exists. */
+export function displayAddress(
+  address: QuoteFlowAnswers["address"],
+): string {
+  return address.formatted?.trim() || address.line.trim() || address.postcode;
+}
+
 export function emptyDrawnRoof(path: LatLng[] = []): DrawnRoof {
   return { path, gutterEdgeIndices: [], obstructions: [] };
 }

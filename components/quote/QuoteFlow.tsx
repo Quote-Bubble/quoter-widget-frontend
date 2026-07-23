@@ -26,7 +26,11 @@ import {
 import { apiUrl } from "@/lib/api";
 import { addressEntryReady } from "@/components/quote/AddressEntry";
 import { materialLabel, materialOptionsFor } from "@/lib/materials";
-import { looksLikeUkPostcode, prettyPostcode } from "@/lib/postcode";
+import {
+  looksLikeUkPostcode,
+  normalisePostcode,
+  prettyPostcode,
+} from "@/lib/postcode";
 import {
   JOB_TYPE_OPTIONS,
   PROPERTY_TYPE_OPTIONS,
@@ -36,6 +40,7 @@ import {
   buildLeadPayload,
   computeFlowQuote,
   createFlowAnswers,
+  displayAddress,
   drawApproach,
   flowPath,
   measureRoofs,
@@ -108,6 +113,12 @@ type FlowAction =
       formatted: string | null;
       reason: string;
     }
+  | {
+      type: "ADDRESS_RESOLVED";
+      postcode: string;
+      coords: LatLng;
+      formatted: string;
+    }
   | { type: "SUBMIT_START"; patch: Partial<QuoteFlowAnswers> }
   | { type: "SUBMIT_ERROR"; message: string }
   | { type: "SUBMIT_DONE" };
@@ -151,6 +162,26 @@ function reducer(state: FlowState, action: FlowAction): FlowState {
         fallbackReason: action.reason,
       };
       return { ...state, answers, step: "contact", direction: 1 };
+    }
+    case "ADDRESS_RESOLVED": {
+      const stateCoords = state.answers.coords;
+      const coordsMatch =
+        stateCoords?.lat === action.coords.lat &&
+        stateCoords?.lng === action.coords.lng;
+      if (
+        !coordsMatch ||
+        normalisePostcode(state.answers.address.postcode) !==
+          normalisePostcode(action.postcode)
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        answers: {
+          ...state.answers,
+          address: { ...state.answers.address, formatted: action.formatted },
+        },
+      };
     }
     case "SUBMIT_START":
       return {
@@ -394,6 +425,37 @@ function QuoteFlowBody({
     dispatch({ type: "GO_NEXT" });
   }
 
+  function updatePostcode(postcode: string) {
+    const postcodeChanged =
+      normalisePostcode(postcode) !== normalisePostcode(answers.address.postcode);
+    if (postcodeChanged) {
+      setMapView(null);
+      setPrefetchedGeocode(null);
+    }
+    dispatch({
+      type: "PATCH",
+      patch: {
+        address: {
+          ...answers.address,
+          postcode,
+          // A reverse-geocoded address belongs to the pin for the old postcode.
+          formatted: postcodeChanged ? null : answers.address.formatted,
+        },
+        ...(postcodeChanged
+          ? {
+              coords: null,
+              scan: null,
+              fallbackReason: null,
+              roofs: [],
+              gutterRuns: [],
+              chimneyCount: 0,
+              rooflightCount: 0,
+            }
+          : {}),
+      },
+    });
+  }
+
   async function submitLead(
     contact: QuoteFlowAnswers["contact"],
     otherJobDescription: string,
@@ -451,12 +513,7 @@ function QuoteFlowBody({
         return (
           <AddressStep
             postcode={answers.address.postcode}
-            onPostcodeChange={(postcode) =>
-              dispatch({
-                type: "PATCH",
-                patch: { address: { ...answers.address, postcode } },
-              })
-            }
+            onPostcodeChange={updatePostcode}
             onContinue={continueFromAddress}
           />
         );
@@ -528,6 +585,14 @@ function QuoteFlowBody({
             }
             onFallback={(coords, formatted, reason) =>
               dispatch({ type: "SCAN_FALLBACK", coords, formatted, reason })
+            }
+            onAddressResolved={(coords, formatted) =>
+              dispatch({
+                type: "ADDRESS_RESOLVED",
+                postcode: answers.address.postcode,
+                coords,
+                formatted,
+              })
             }
             onEditAddress={() => {
               clearAdvanceTimer();
@@ -629,7 +694,7 @@ function QuoteFlowBody({
             quote={quote}
             measurement={measurement}
             roofs={roofPaths}
-            address={answers.address.formatted ?? answers.address.line}
+            address={displayAddress(answers.address)}
             materialLabelText={
               path === "roofline"
                 ? answers.rooflineScope === "gutters_fascias"

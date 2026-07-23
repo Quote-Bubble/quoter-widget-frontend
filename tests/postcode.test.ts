@@ -12,12 +12,14 @@ describe("postcode helpers", () => {
     expect(normalisePostcode("sw1a 2aa")).toBe("SW1A2AA");
     expect(prettyPostcode("sw1a2aa")).toBe("SW1A 2AA");
     expect(looksLikeUkPostcode("SW1A 2AA")).toBe(true);
+    expect(looksLikeUkPostcode("GIR 0AA")).toBe(true);
     expect(looksLikeUkPostcode("SW1A")).toBe(false);
     expect(looksLikeUkPostcode("not a postcode")).toBe(false);
   });
 
   it("requires a valid postcode before continue", () => {
     expect(addressEntryReady("SW1A 2AA")).toBe(true);
+    expect(addressEntryReady("GIR 0AA")).toBe(true);
     expect(addressEntryReady("SW1A")).toBe(false);
     expect(addressEntryReady("not a postcode")).toBe(false);
   });
