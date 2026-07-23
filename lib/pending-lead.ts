@@ -9,6 +9,11 @@ import { apiUrl } from "@/lib/api";
  *  2. Stash the payload in localStorage BEFORE sending and only clear it once
  *     the backend confirms. If the tab is reloaded / crashes mid-send, the next
  *     mount re-sends it (see flushPendingLead) so it isn't silently lost.
+ *
+ * Both safety nets can RESEND the same lead, so each submission carries a
+ * stable `_submissionId` (see newSubmissionId): the backend upserts on it, so
+ * every resend of one submission collapses into a single lead instead of
+ * multiplying it in the roofer's inbox.
  */
 
 const KEY = "quoter_pending_lead";
@@ -16,6 +21,22 @@ const MAX_AGE_MS = 24 * 60 * 60 * 1000; // don't resurrect ancient drafts
 
 // Body includes the anti-spam fields alongside the lead payload.
 export type LeadBody = Record<string, unknown>;
+
+/**
+ * Stable per-submission id. Generated ONCE per submission and carried in the
+ * stashed body, so retries and the resend-on-mount all reuse it — the backend
+ * treats them as the same lead (idempotent). A UUID so the backend can use it
+ * directly as the lead's primary key.
+ */
+export function newSubmissionId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Ancient-browser fallback: not a valid UUID, so the backend falls back to
+  // its own id (no idempotency for this one lead, but no error). Vanishingly
+  // rare — crypto.randomUUID is near-universal.
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function safeGet(): { body: LeadBody; savedAt: number } | null {
   try {

@@ -57,6 +57,7 @@ import { ADVANCE_DELAY_MS, STEP_TRANSITION } from "@/lib/motion";
 import { track } from "@/lib/analytics";
 import {
   clearPendingLead,
+  newSubmissionId,
   postLeadWithRetry,
   savePendingLead,
 } from "@/lib/pending-lead";
@@ -474,7 +475,15 @@ function QuoteFlowBody({
     );
     // Anti-spam signals travel alongside the payload; the backend silently
     // drops obvious bots (honeypot filled, or submitted implausibly fast).
-    const body = { ...payload, _hp: botCheck.hp, _elapsedMs: botCheck.elapsedMs };
+    // `_submissionId` is generated once here so every retry / resend-on-mount
+    // of THIS submission reuses it — the backend upserts on it, so a flaky
+    // network can't turn one submission into duplicate leads.
+    const body = {
+      ...payload,
+      _hp: botCheck.hp,
+      _elapsedMs: botCheck.elapsedMs,
+      _submissionId: newSubmissionId(),
+    };
 
     // Stash before sending so a reload/crash mid-send doesn't lose the lead;
     // cleared only once the backend confirms.
