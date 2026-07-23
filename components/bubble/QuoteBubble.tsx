@@ -247,6 +247,14 @@ function QuoteBubbleShell({
                   Enter a valid UK postcode to get a quote
                 </p>
               )}
+              <a
+                className="q-powered"
+                href="https://quoter-web-six.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Powered by <span>Quoter</span>
+              </a>
             </motion.div>
           )}
         </AnimatePresence>

@@ -8,8 +8,9 @@ import type { Transition } from "motion/react";
  * layout perfectly still (see the overlay model in the landing LiveWidget).
  */
 export const QUOTE_SIZES = {
-  /** Collapsed search bar — border-box height of the whole .q card. */
-  collapsed: 90,
+  /** Collapsed search bar — border-box height of the whole .q card,
+   *  including the small "Powered by Quoter" caption beneath the bar. */
+  collapsed: 112,
   /** Expanded panel — fixed; the step body scrolls internally past this. */
   expanded: 544,
 } as const;

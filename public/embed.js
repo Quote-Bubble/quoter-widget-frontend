@@ -18,7 +18,7 @@
   "use strict";
 
   // Two fixed sizes — keep in sync with QUOTE_SIZES in the widget (lib/motion).
-  var COLLAPSED_H = 90;
+  var COLLAPSED_H = 112;
   var EXPANDED_H = 544;
   var EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 

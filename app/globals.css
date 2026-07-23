@@ -260,6 +260,28 @@ body:has(#quoter-widget[data-stage="flow"]) .quoter-bubble-host {
   color: #dc4545;
   animation: q-hint-in 0.18s var(--ease-out-soft) both;
 }
+
+/* Subtle "Powered by Quoter" under the collapsed search bar — the growth
+   flywheel: every embed quietly shows the brand. Kept small and muted so it
+   never competes with the roofer's own site. */
+.q-powered {
+  display: block;
+  margin: 9px 4px 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.q-powered span {
+  font-weight: 700;
+  color: var(--color-brand-600);
+}
+.q-powered:hover {
+  color: var(--color-ink-soft);
+}
 @keyframes q-hint-in {
   from {
     opacity: 0;
