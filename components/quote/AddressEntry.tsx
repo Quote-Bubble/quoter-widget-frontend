@@ -1,24 +1,22 @@
 "use client";
 
 /**
- * Free address entry: UK postcode + house/street free text.
+ * Postcode-only address entry. No street/house field: the reverse-geocode
+ * call fired once at pin-confirm (LocateStep) derives a real street address
+ * from the coordinate the homeowner actually drags onto their roof, which is
+ * a stronger signal than free-typed text nobody validates.
  * No Google Places Autocomplete — geocode stays on /api/geocode (postcodes.io).
  */
 
 import { useState } from "react";
 
 import { flowInputClass, flowLabelClass } from "@/components/quote/ui";
-import {
-  looksLikeUkPostcode,
-  prettyPostcode,
-} from "@/lib/postcode";
+import { looksLikeUkPostcode, prettyPostcode } from "@/lib/postcode";
 
 type AddressEntryProps = {
-  line: string;
   postcode: string;
-  onLineChange: (value: string) => void;
   onPostcodeChange: (value: string) => void;
-  /** "flow" = wizard (postcode + house); "bare" = bubble search (postcode only). */
+  /** "flow" = wizard step; "bare" = bubble search. Both are postcode-only. */
   variant?: "flow" | "bare";
   autoFocus?: boolean;
   onSubmit?: () => void;
@@ -67,13 +65,6 @@ function postcodeStatus(value: string, showInvalid: boolean): FieldStatus {
   return showInvalid ? "invalid" : "idle";
 }
 
-function lineStatus(value: string, showInvalid: boolean): FieldStatus {
-  const trimmed = value.trim();
-  if (!trimmed) return "idle";
-  if (trimmed.length > 2) return "valid";
-  return showInvalid ? "invalid" : "idle";
-}
-
 function statusBorderClass(status: FieldStatus): string {
   if (status === "valid") return "border-emerald-400/80 focus:border-emerald-400";
   if (status === "invalid") return "border-red-400 focus:border-red-400 focus:ring-red-500/15";
@@ -81,16 +72,13 @@ function statusBorderClass(status: FieldStatus): string {
 }
 
 export function AddressEntry({
-  line,
   postcode,
-  onLineChange,
   onPostcodeChange,
   variant = "flow",
   autoFocus = false,
   onSubmit,
 }: AddressEntryProps) {
   const [postcodeTouched, setPostcodeTouched] = useState(false);
-  const [lineTouched, setLineTouched] = useState(false);
 
   if (variant === "bare") {
     return (
@@ -125,69 +113,46 @@ export function AddressEntry({
   }
 
   const postcodeState = postcodeStatus(postcode, postcodeTouched);
-  const lineState = lineStatus(line, lineTouched);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className={flowLabelClass} htmlFor="quote-postcode">
-          Postcode
-        </label>
-        <div className="relative">
-          <input
-            id="quote-postcode"
-            type="text"
-            value={postcode}
-            onChange={(event) =>
-              onPostcodeChange(event.target.value.toUpperCase())
+    <div>
+      <label className={flowLabelClass} htmlFor="quote-postcode">
+        Postcode
+      </label>
+      <div className="relative">
+        <input
+          id="quote-postcode"
+          type="text"
+          value={postcode}
+          onChange={(event) =>
+            onPostcodeChange(event.target.value.toUpperCase())
+          }
+          onBlur={() => {
+            setPostcodeTouched(true);
+            if (looksLikeUkPostcode(postcode)) {
+              onPostcodeChange(prettyPostcode(postcode));
             }
-            onBlur={() => {
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
               setPostcodeTouched(true);
-              if (looksLikeUkPostcode(postcode)) {
-                onPostcodeChange(prettyPostcode(postcode));
-              }
-            }}
-            placeholder="e.g. SW1A 2AA"
-            autoComplete="postal-code"
-            autoFocus={autoFocus}
-            spellCheck={false}
-            aria-invalid={postcodeState === "invalid"}
-            className={`${flowInputClass} pr-11 ${statusBorderClass(postcodeState)}`}
-          />
-          <FieldStatusIcon status={postcodeState} />
-        </div>
-      </div>
-      <div>
-        <label className={flowLabelClass} htmlFor="quote-address">
-          House number and street
-        </label>
-        <div className="relative">
-          <input
-            id="quote-address"
-            type="text"
-            value={line}
-            onChange={(event) => onLineChange(event.target.value)}
-            onBlur={() => setLineTouched(true)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                setPostcodeTouched(true);
-                setLineTouched(true);
-                onSubmit?.();
-              }
-            }}
-            placeholder="e.g. 12 Oakfield Road"
-            autoComplete="street-address"
-            aria-invalid={lineState === "invalid"}
-            className={`${flowInputClass} pr-11 ${statusBorderClass(lineState)}`}
-          />
-          <FieldStatusIcon status={lineState} />
-        </div>
+              onSubmit?.();
+            }
+          }}
+          placeholder="e.g. SW1A 2AA"
+          autoComplete="postal-code"
+          autoFocus={autoFocus}
+          spellCheck={false}
+          aria-invalid={postcodeState === "invalid"}
+          className={`${flowInputClass} pr-11 ${statusBorderClass(postcodeState)}`}
+        />
+        <FieldStatusIcon status={postcodeState} />
       </div>
     </div>
   );
 }
 
-export function addressEntryReady(line: string, postcode: string): boolean {
-  return line.trim().length > 2 && looksLikeUkPostcode(postcode);
+export function addressEntryReady(postcode: string): boolean {
+  return looksLikeUkPostcode(postcode);
 }

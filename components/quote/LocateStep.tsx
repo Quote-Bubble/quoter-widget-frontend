@@ -14,30 +14,46 @@ import {
   useMapHeightClass,
 } from "@/components/quote/ui";
 import { apiUrl } from "@/lib/api";
+import { haversineM } from "@/lib/geo";
 import type { LatLng, SolarScan } from "@/lib/types";
 
 // Just enough of a hold that the spinner doesn't flash-and-vanish on a fast
 // response — kept short so the flow feels instant when the network is quick.
 const MIN_PHASE_MS = 240;
 
+// Below this, the pin is treated as "still the same roof" rather than a
+// deliberate move — comfortably absorbs map re-render/floating-point jitter
+// between mounts, while staying well under the ~5-6 m gap between terraced
+// houses, so an actual "wrong house, moved it next door" correction still
+// triggers a fresh scan.
+const SAME_ROOF_RADIUS_M = 3;
+
 type Phase = "geocoding" | "confirm" | "scanning" | "error";
 
 export function LocateStep({
-  addressLine,
   postcode,
   prefetched,
+  previousScan,
   mapView,
   onMapViewChange,
   onSuccess,
   onFallback,
   onEditAddress,
 }: {
-  addressLine: string;
   postcode: string;
   /** Resolved in the background as soon as the flow knew an address (see
    *  QuoteFlowBody's prefetch effect) — if it's already landed by the time
    *  this step mounts, skip the geocoding phase and go straight to confirm. */
   prefetched?: { coords: LatLng; formatted: string | null } | null;
+  /** A scan already run earlier this session (e.g. the user went back past
+   *  this step and came forward again without touching the pin). If the
+   *  confirmed pin is still within SAME_ROOF_RADIUS_M of it, reuse it
+   *  instead of paying for another Solar + reverse-geocode call. */
+  previousScan?: {
+    coords: LatLng;
+    scan: SolarScan;
+    formatted: string | null;
+  } | null;
   mapView: { center: LatLng; zoom: number } | null;
   onMapViewChange: (view: { center: LatLng; zoom: number }) => void;
   onSuccess: (coords: LatLng, formatted: string | null, scan: SolarScan) => void;
@@ -80,7 +96,7 @@ export function LocateStep({
         const geocodeResponse = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address: addressLine, postcode }),
+          body: JSON.stringify({ postcode }),
         });
         const raw = await geocodeResponse.text();
         let geocodeBody: {
@@ -100,7 +116,7 @@ export function LocateStep({
           const message =
             typeof geocodeBody.error === "string"
               ? geocodeBody.error
-              : "We couldn't find that address. Double-check the house number and postcode.";
+              : "We couldn't find that postcode. Double-check it and try again.";
           setError(message);
           setPhase("error");
           return;
@@ -124,10 +140,19 @@ export function LocateStep({
     }
 
     void runGeocode();
-  }, [addressLine, postcode, prefetched]);
+  }, [postcode, prefetched]);
 
   async function confirmAndScan() {
     if (!geocoded || !centre) return;
+
+    if (
+      previousScan &&
+      haversineM(centre, previousScan.coords) <= SAME_ROOF_RADIUS_M
+    ) {
+      onSuccess(centre, previousScan.formatted, previousScan.scan);
+      return;
+    }
+
     setPhase("scanning");
     const startedAt = performance.now();
 
@@ -141,11 +166,22 @@ export function LocateStep({
     }
 
     try {
-      const solarResponse = await fetch(apiUrl("/api/solar"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ coords: centre }),
-      });
+      const [solarResponse, reverseGeocodeResponse] = await Promise.all([
+        fetch(apiUrl("/api/solar"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ coords: centre }),
+        }),
+        // Best-effort upgrade from the postcode+district label to a real
+        // street address, using the exact pin the homeowner just confirmed.
+        // Piggybacks on this same click so it adds no extra step or gate —
+        // and a failure here never blocks the roof scan itself.
+        fetch(apiUrl("/api/reverse-geocode"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ coords: centre }),
+        }).catch(() => null),
+      ]);
       const solarBody = (await solarResponse.json()) as {
         scan?: SolarScan;
       };
@@ -159,7 +195,20 @@ export function LocateStep({
         );
         return;
       }
-      onSuccess(centre, geocoded.formatted, solarBody.scan);
+
+      let formatted = geocoded.formatted;
+      if (reverseGeocodeResponse?.ok) {
+        try {
+          const reverseBody = (await reverseGeocodeResponse.json()) as {
+            formattedAddress?: string;
+          };
+          if (reverseBody.formattedAddress) formatted = reverseBody.formattedAddress;
+        } catch {
+          // Keep the postcode+district fallback — this call is best-effort only.
+        }
+      }
+
+      onSuccess(centre, formatted, solarBody.scan);
     } catch {
       await holdMinimum();
       setError(
@@ -208,7 +257,7 @@ export function LocateStep({
               ? "Finding your house…"
               : "Preparing your roof…"}
           </p>
-          <p className="mt-1 text-center text-[13px] text-muted">{addressLine}</p>
+          <p className="mt-1 text-center text-[13px] text-muted">{postcode}</p>
         </div>
       </StepShell>
     );

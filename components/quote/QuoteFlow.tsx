@@ -171,7 +171,7 @@ function reducer(state: FlowState, action: FlowAction): FlowState {
 export type QuoteFlowProps = {
   rooferId?: string;
   brandName?: string;
-  initialAddress?: { line: string; postcode: string; formatted?: string | null };
+  initialAddress?: { postcode: string; formatted?: string | null };
   onClose?: () => void;
   variant?: FlowVariant;
 };
@@ -226,14 +226,12 @@ function QuoteFlowBody({
         };
       }
       const answers = createFlowAnswers(rooferId, {
-        line: initialAddress?.line ?? "",
         postcode: initialAddress?.postcode ?? "",
         formatted: initialAddress?.formatted ?? null,
       });
-      // Any address the host already collected (even just typed text with no
-      // postcode) is enough — geocoding works from the line alone, so we
-      // never ask "where's the roof?" a second time.
-      const hasAddress = answers.address.line.trim().length > 3;
+      // The bubble already gates its own "Get quote" on a valid postcode, so
+      // if one made it here we never ask "where's the roof?" a second time.
+      const hasAddress = looksLikeUkPostcode(answers.address.postcode);
       return {
         answers,
         step: hasAddress ? "job_type" : "address",
@@ -257,27 +255,21 @@ function QuoteFlowBody({
     coords: LatLng;
     formatted: string | null;
   } | null>(null);
-  const addressKey = `${answers.address.line.trim().toLowerCase()}|${answers.address.postcode
-    .trim()
-    .toLowerCase()}`;
+  const addressKey = answers.address.postcode.trim().toLowerCase();
   const [returnToLocate, setReturnToLocate] = useState(false);
   const [mapView, setMapView] = useState<{
     center: LatLng;
     zoom: number;
   } | null>(null);
   useEffect(() => {
-    const line = answers.address.line.trim();
-    if (line.length <= 3 || !mapsEnabled) return;
+    if (!looksLikeUkPostcode(answers.address.postcode) || !mapsEnabled) return;
     let active = true;
     (async () => {
       try {
         const response = await fetch(apiUrl("/api/geocode"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            address: line,
-            postcode: answers.address.postcode,
-          }),
+          body: JSON.stringify({ postcode: answers.address.postcode }),
         });
         const body = (await response.json()) as {
           coords?: LatLng;
@@ -297,7 +289,7 @@ function QuoteFlowBody({
     return () => {
       active = false;
     };
-  }, [addressKey, answers.address.line, answers.address.postcode, mapsEnabled]);
+  }, [addressKey, answers.address.postcode, mapsEnabled]);
 
   function clearAdvanceTimer() {
     if (advanceTimerRef.current !== null) {
@@ -384,21 +376,14 @@ function QuoteFlowBody({
 
   function continueFromAddress() {
     clearAdvanceTimer();
-    const line = answers.address.line.trim();
     const postcode = looksLikeUkPostcode(answers.address.postcode)
       ? prettyPostcode(answers.address.postcode)
       : answers.address.postcode.trim();
-    if (!addressEntryReady(line, postcode)) return;
+    if (!addressEntryReady(postcode)) return;
 
     dispatch({
       type: "PATCH",
-      patch: {
-        address: {
-          line,
-          postcode,
-          formatted: `${line}, ${postcode}`,
-        },
-      },
+      patch: { address: { ...answers.address, postcode } },
     });
 
     if (returnToLocate) {
@@ -465,14 +450,7 @@ function QuoteFlowBody({
       case "address":
         return (
           <AddressStep
-            line={answers.address.line}
             postcode={answers.address.postcode}
-            onLineChange={(line) =>
-              dispatch({
-                type: "PATCH",
-                patch: { address: { ...answers.address, line } },
-              })
-            }
             onPostcodeChange={(postcode) =>
               dispatch({
                 type: "PATCH",
@@ -525,7 +503,6 @@ function QuoteFlowBody({
       case "locate":
         return (
           <LocateStep
-            addressLine={answers.address.line}
             postcode={answers.address.postcode}
             mapView={mapView}
             onMapViewChange={setMapView}
@@ -534,6 +511,15 @@ function QuoteFlowBody({
                 ? {
                     coords: prefetchedGeocode.coords,
                     formatted: prefetchedGeocode.formatted,
+                  }
+                : null
+            }
+            previousScan={
+              answers.scan && answers.coords
+                ? {
+                    coords: answers.coords,
+                    scan: answers.scan,
+                    formatted: answers.address.formatted,
                   }
                 : null
             }

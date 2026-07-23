@@ -16,9 +16,9 @@ describe("postcode helpers", () => {
     expect(looksLikeUkPostcode("not a postcode")).toBe(false);
   });
 
-  it("requires house line + valid postcode before continue", () => {
-    expect(addressEntryReady("12 Oakfield Road", "SW1A 2AA")).toBe(true);
-    expect(addressEntryReady("12", "SW1A 2AA")).toBe(false);
-    expect(addressEntryReady("12 Oakfield Road", "SW1A")).toBe(false);
+  it("requires a valid postcode before continue", () => {
+    expect(addressEntryReady("SW1A 2AA")).toBe(true);
+    expect(addressEntryReady("SW1A")).toBe(false);
+    expect(addressEntryReady("not a postcode")).toBe(false);
   });
 });

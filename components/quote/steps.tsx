@@ -69,31 +69,25 @@ export function OptionListStep<Value extends string | number>({
 /* ------------------------------------------------------------------ */
 
 export function AddressStep({
-  line,
   postcode,
-  onLineChange,
   onPostcodeChange,
   onContinue,
 }: {
-  line: string;
   postcode: string;
-  onLineChange: (value: string) => void;
   onPostcodeChange: (value: string) => void;
   onContinue: () => void;
 }) {
-  const ready = addressEntryReady(line, postcode);
+  const ready = addressEntryReady(postcode);
   return (
     <StepShell>
       <StepHeading
-        sub="We'll use this to find your house on the map."
-        info="Your address is only used to find your roof on recent aerial imagery."
+        sub="No ladders — we measure from satellite imagery."
+        info="Your postcode is only used to find your roof on recent aerial imagery."
       >
         Where&apos;s the roof?
       </StepHeading>
       <AddressEntry
-        line={line}
         postcode={postcode}
-        onLineChange={onLineChange}
         onPostcodeChange={onPostcodeChange}
         autoFocus
         onSubmit={() => {

@@ -140,7 +140,6 @@ function QuoteBubbleShell({
       mapsEnabled={mapsEnabled}
       variant={isDesktop ? "card" : "page"}
       initialAddress={{
-        line: flow.line,
         postcode: flow.postcode,
         formatted: flow.formatted,
       }}
@@ -207,9 +206,7 @@ function QuoteBubbleShell({
                 </svg>
                 <AddressEntry
                   variant="bare"
-                  line=""
                   postcode={postcode}
-                  onLineChange={() => {}}
                   onPostcodeChange={(value) => {
                     setPostcode(value);
                     if (showAddressHint) setShowAddressHint(false);
